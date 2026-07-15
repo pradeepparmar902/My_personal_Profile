@@ -809,7 +809,7 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
             <div className="mx-auto w-60 h-60 bg-white p-4 rounded-2xl shadow-xl flex items-center justify-center border-4 border-[#d4af37]/20">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                  `${window.location.origin}/?workshop=${qrWorkshop.id}`
+                  `${window.location.origin}${window.location.pathname}?register=${qrWorkshop.id}`
                 )}`}
                 alt="Workshop Registration QR Code"
                 className="w-full h-full object-contain"
@@ -821,12 +821,12 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                 <input
                   type="text"
                   readOnly
-                  value={`${window.location.origin}/?workshop=${qrWorkshop.id}`}
+                  value={`${window.location.origin}${window.location.pathname}?register=${qrWorkshop.id}`}
                   className="flex-1 bg-transparent border-none text-[11px] text-gray-400 outline-none font-mono px-2"
                 />
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/?workshop=${qrWorkshop.id}`);
+                    navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?register=${qrWorkshop.id}`);
                     setCopiedQrUrl(true);
                     setTimeout(() => setCopiedQrUrl(false), 2000);
                   }}
@@ -840,7 +840,7 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
               <div className="flex gap-2.5 pt-1">
                 <a
                   href={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(
-                    `${window.location.origin}/?workshop=${qrWorkshop.id}`
+                    `${window.location.origin}${window.location.pathname}?register=${qrWorkshop.id}`
                   )}`}
                   download={`QR_${qrWorkshop.title.replace(/\s+/g, "_")}.png`}
                   target="_blank"
