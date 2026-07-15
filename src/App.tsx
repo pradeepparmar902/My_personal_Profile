@@ -5,7 +5,6 @@
 
 import React, { useState } from "react";
 import { ProfileProvider, useProfile } from "./lib/ProfileContext";
-import Background3D from "./components/three/Background3D";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import Home from "./components/pages/Home";
@@ -14,6 +13,9 @@ import Portfolio from "./components/pages/Portfolio";
 import Contact from "./components/pages/Contact";
 import Admin from "./components/pages/Admin";
 import { motion, AnimatePresence } from "motion/react";
+import { lazy, Suspense } from "react";
+
+const Background3D = lazy(() => import("./components/three/Background3D"));
 
 function MainAppContent() {
   const [currentTab, setCurrentTab] = useState<string>(() => {
@@ -61,8 +63,10 @@ function MainAppContent() {
 
   return (
     <div className="relative min-h-screen text-white overflow-x-hidden font-sans selection:bg-[#d4af37] selection:text-black">
-      {/* 3D Canvas Layer */}
-      <Background3D />
+      {/* 3D Canvas Layer (Deferred for Performance) */}
+      <Suspense fallback={null}>
+        <Background3D />
+      </Suspense>
 
       {/* Navigation Headers */}
       <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} />
