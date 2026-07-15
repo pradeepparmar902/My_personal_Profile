@@ -93,10 +93,25 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           // Seed first if empty
           await seedDatabaseIfEmpty();
 
-          // Fetch everything concurrently to slash loading times from ~8s to ~1s
+          // Fetch critical data first (needed for deep linking and main UI)
+          const [profileDoc, projectsSnap] = await Promise.all([
+            getDoc(doc(db, "profiles", "default")),
+            getDocs(collection(db, "projects"))
+          ]);
+
+          if (profileDoc.exists()) {
+            setProfile({ id: "default", ...profileDoc.data() } as Profile);
+          }
+
+          const projectsList: Project[] = [];
+          projectsSnap.forEach((d) => projectsList.push({ id: d.id, ...d.data() } as Project));
+          setProjects(projectsList);
+
+          // Critical data loaded! Unblock the UI instantly so deep links open immediately.
+          setLoading(false);
+
+          // Fetch the rest of the non-critical data concurrently in the background
           const [
-            profileDoc,
-            projectsSnap,
             experiencesSnap,
             skillsSnap,
             testimonialsSnap,
@@ -109,8 +124,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             messagesSnap,
             regsSnap
           ] = await Promise.all([
-            getDoc(doc(db, "profiles", "default")),
-            getDocs(collection(db, "projects")),
             getDocs(collection(db, "experience")),
             getDocs(collection(db, "skills")),
             getDocs(collection(db, "testimonials")),
@@ -123,14 +136,6 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             (isAdmin || auth.currentUser) ? getDocs(collection(db, "messages")).catch(err => { console.error(err); return null; }) : Promise.resolve(null),
             (isAdmin || auth.currentUser) ? getDocs(collection(db, "workshop_registrations")).catch(err => { console.error(err); return null; }) : Promise.resolve(null)
           ]);
-
-          if (profileDoc.exists()) {
-            setProfile({ id: "default", ...profileDoc.data() } as Profile);
-          }
-
-          const projectsList: Project[] = [];
-          projectsSnap.forEach((d) => projectsList.push({ id: d.id, ...d.data() } as Project));
-          setProjects(projectsList);
 
           const experiencesList: Experience[] = [];
           experiencesSnap.forEach((d) => experiencesList.push({ id: d.id, ...d.data() } as Experience));

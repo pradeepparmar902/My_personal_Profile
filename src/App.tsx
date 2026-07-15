@@ -18,9 +18,13 @@ import { lazy, Suspense } from "react";
 const Background3D = lazy(() => import("./components/three/Background3D"));
 
 function MainAppContent() {
-  const [currentTab, setCurrentTab] = useState<string>(() => {
+  const isDeepLinked = (() => {
     const params = new URLSearchParams(window.location.search);
-    return (params.has("register") || params.has("workshop")) ? "portfolio" : "home";
+    return params.has("register") || params.has("workshop");
+  })();
+
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    return isDeepLinked ? "portfolio" : "home";
   });
   const { loading } = useProfile();
 
@@ -63,10 +67,12 @@ function MainAppContent() {
 
   return (
     <div className="relative min-h-screen text-white overflow-x-hidden font-sans selection:bg-[#d4af37] selection:text-black">
-      {/* 3D Canvas Layer (Deferred for Performance) */}
-      <Suspense fallback={null}>
-        <Background3D />
-      </Suspense>
+      {/* 3D Canvas Layer (Deferred for Performance, disabled entirely on deep links to prevent WebGL lockups) */}
+      {!isDeepLinked && (
+        <Suspense fallback={null}>
+          <Background3D />
+        </Suspense>
+      )}
 
       {/* Navigation Headers */}
       <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} />
