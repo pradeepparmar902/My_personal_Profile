@@ -51,11 +51,11 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
     return parentVal === expectedVal;
   };
 
-  // Deep linking: Auto-open registration modal if workshop ID is in query parameters
+  // Deep linking: Auto-open registration modal if register ID is in query parameters
   React.useEffect(() => {
     if (projects && projects.length > 0) {
       const params = new URLSearchParams(window.location.search);
-      const workshopId = params.get("workshop");
+      const workshopId = params.get("register");
       if (workshopId) {
         const found = projects.find(p => p.id === workshopId);
         if (found && found.allowRegistration) {

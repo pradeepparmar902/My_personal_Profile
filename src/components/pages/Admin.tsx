@@ -824,7 +824,46 @@ export default function Admin() {
                           </p>
                         </div>
 
+                      </div>
+                    )}
 
+                    {entityForm.allowRegistration && entityForm.id && (
+                      <div className="p-4 rounded-xl border border-[#d4af37]/30 bg-black/60 space-y-4 animate-fadeIn mt-4">
+                        <div className="flex items-center gap-2 text-xs text-[#d4af37] font-semibold uppercase tracking-wider font-mono border-b border-white/5 pb-2">
+                          <QrCode size={14} />
+                          <span>Workshop Entry QR Code</span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-center gap-6">
+                          <div className="p-3 bg-white rounded-lg flex-shrink-0">
+                            <QRCodeCanvas 
+                              id={`qr-${entityForm.id}`}
+                              value={`${window.location.origin}${window.location.pathname}?register=${entityForm.id}`} 
+                              size={120} 
+                              level="H"
+                              fgColor="#000000"
+                              bgColor="#ffffff"
+                            />
+                          </div>
+                          <div className="space-y-3 text-center sm:text-left">
+                            <div>
+                              <h4 className="text-sm font-semibold text-white">Direct Invite Link Code</h4>
+                              <p className="text-[10px] text-gray-400 mt-1 leading-relaxed">
+                                Users can scan this QR code to be instantly routed to the registration form for <strong>"{entityForm.title}"</strong>.
+                              </p>
+                              <p className="text-[9px] text-[#d4af37] font-mono mt-1 break-all">
+                                {window.location.origin}{window.location.pathname}?register={entityForm.id}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => downloadQRCode(entityForm.id, entityForm.title)}
+                              className="px-4 py-2 rounded-lg bg-[#d4af37] hover:bg-amber-500 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md mx-auto sm:mx-0 cursor-pointer"
+                            >
+                              <Download size={14} />
+                              Download QR Code
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
