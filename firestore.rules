@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if the user is authenticated as the owner
+    function isOwner() {
+      return request.auth != null;
+    }
+
+    // Public read-only collections, read/write for owner
+    match /profiles/{profileId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+    match /experience/{experienceId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+    match /skills/{skillId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+    match /achievements/{achievementId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+    match /achievement_categories/{categoryId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+    match /positions/{positionId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+    match /position_types/{typeId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // Contact messages: anyone can create, only owner can read/delete
+    match /messages/{messageId} {
+      allow create: if true;
+      allow read, delete: if isOwner();
+      allow update: if false;
+    }
+
+    // Workshop registrations: anyone can create, only owner can read/delete
+    match /workshop_registrations/{registrationId} {
+      allow create: if true;
+      allow read, delete: if isOwner();
+      allow update: if false;
+    }
+
+    // Custom registration forms: public read, admin write
+    match /registration_forms/{formId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // Reusable fields library: public read, admin write
+    match /reusable_fields/{fieldId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+  }
+}

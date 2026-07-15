@@ -1,0 +1,6 @@
+{
+  "name": "Pradeep Parmar 3D Profile",
+  "description": "An immersive 3D personal profile app for Pradeep Parmar utilizing React Three Fiber, particle simulation, and a full content management system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,245 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "Profile",
+      "description": "Dynamic personal profile configurations.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "tagline": { "type": "string" },
+        "heroDescription": { "type": "string" },
+        "bio": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "location": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "linkedin": { "type": "string" },
+        "youtube": { "type": "string" },
+        "instagram": { "type": "string" },
+        "stats": {
+          "type": "array",
+          "description": "Key statistics, e.g. [{ label: 'Workshops', value: '150+' }]"
+        }
+      }
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A workshop, seminar, or project entry.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "link": { "type": "string" },
+        "details": { "type": "string" },
+        "allowRegistration": { "type": "boolean" },
+        "workshopDate": { "type": "string" },
+        "regFormTitle": { "type": "string" },
+        "regFormButtonText": { "type": "string" },
+        "regCustomQuestion": { "type": "string" },
+        "regSuccessMessage": { "type": "string" },
+        "formTemplateId": { "type": "string" },
+        "whatsappGroupLink": { "type": "string" }
+      },
+      "required": ["title", "description", "category"]
+    },
+    "Experience": {
+      "title": "Experience",
+      "description": "Career journey timelines.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "organization": { "type": "string" },
+        "period": { "type": "string" },
+        "details": { "type": "string" }
+      },
+      "required": ["title", "organization", "period"]
+    },
+    "Skill": {
+      "title": "Skill",
+      "description": "Skills and proficiencies.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "percentage": { "type": "number" }
+      },
+      "required": ["name", "category", "percentage"]
+    },
+    "Testimonial": {
+      "title": "Testimonial",
+      "description": "Learner or corporate client feedback.",
+      "type": "object",
+      "properties": {
+        "author": { "type": "string" },
+        "role": { "type": "string" },
+        "text": { "type": "string" },
+        "avatar": { "type": "string" }
+      },
+      "required": ["author", "text"]
+    },
+    "AchievementCategory": {
+      "title": "AchievementCategory",
+      "description": "Dynamic categories for achievements.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "icon": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["name"]
+    },
+    "Achievement": {
+      "title": "Achievement",
+      "description": "Detailed achievement or portfolio item.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "narrative": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "gallery": { "type": "array" },
+        "link": { "type": "string" }
+      },
+      "required": ["title", "categoryId"]
+    },
+    "PositionType": {
+      "title": "PositionType",
+      "description": "Dynamic categories for positions / affiliations.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "icon": { "type": "string" },
+        "isHidden": { "type": "boolean" }
+      },
+      "required": ["name"]
+    },
+    "Position": {
+      "title": "Position",
+      "description": "Leadership and Affiliations entries.",
+      "type": "object",
+      "properties": {
+        "position": { "type": "string" },
+        "organization": { "type": "string" },
+        "typeId": { "type": "string" },
+        "period": { "type": "string" },
+        "about": { "type": "string" },
+        "url": { "type": "string" }
+      },
+      "required": ["position", "organization", "typeId", "period"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Contact form submissions.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "message"]
+    },
+    "WorkshopRegistration": {
+      "title": "WorkshopRegistration",
+      "description": "Workshop entry/registration form submissions.",
+      "type": "object",
+      "properties": {
+        "workshopId": { "type": "string" },
+        "workshopTitle": { "type": "string" },
+        "name": { "type": "string" },
+        "mobile": { "type": "string" },
+        "address": { "type": "string" },
+        "preferredDate": { "type": "string" },
+        "additionalInfo": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["workshopId", "workshopTitle", "name", "mobile", "address"]
+    },
+    "RegistrationFormTemplate": {
+      "title": "RegistrationFormTemplate",
+      "description": "Custom registration form structure created by the admin.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "buttonText": { "type": "string" },
+        "successMessage": { "type": "string" },
+        "fields": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "isHidden": { "type": "boolean" }
+      },
+      "required": ["name", "title"]
+    },
+    "ReusableField": {
+      "title": "ReusableField",
+      "description": "A reusable field from the library for form construction.",
+      "type": "object",
+      "properties": {
+        "label": { "type": "string" },
+        "type": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "required": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["label", "type"]
+    }
+  },
+  "firestore": {
+    "/reusable_fields/{fieldId}": {
+      "schema": "ReusableField",
+      "description": "Store reusable fields from the library."
+    },
+    "/profiles/{profileId}": {
+      "schema": "Profile",
+      "description": "Store dynamic user profile settings."
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Store projects and workshops."
+    },
+    "/experience/{experienceId}": {
+      "schema": "Experience",
+      "description": "Store career timeline details."
+    },
+    "/skills/{skillId}": {
+      "schema": "Skill",
+      "description": "Store personal and coaching skills."
+    },
+    "/testimonials/{testimonialId}": {
+      "schema": "Testimonial",
+      "description": "Store reviews and student feedback."
+    },
+    "/achievement_categories/{categoryId}": {
+      "schema": "AchievementCategory",
+      "description": "Store dynamically added achievement categories."
+    },
+    "/achievements/{achievementId}": {
+      "schema": "Achievement",
+      "description": "Store achievements grouped by category."
+    },
+    "/position_types/{typeId}": {
+      "schema": "PositionType",
+      "description": "Store leadership types like NGO, Trust."
+    },
+    "/positions/{positionId}": {
+      "schema": "Position",
+      "description": "Store roles within NGO and Trust affiliations."
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Store contact messages for administrator preview."
+    },
+    "/workshop_registrations/{registrationId}": {
+      "schema": "WorkshopRegistration",
+      "description": "Store workshop entry and registration requests."
+    },
+    "/registration_forms/{formId}": {
+      "schema": "RegistrationFormTemplate",
+      "description": "Store custom form configurations for workshops."
+    }
+  }
+}
