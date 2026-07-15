@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from "motion/react";
 function MainAppContent() {
   const [currentTab, setCurrentTab] = useState<string>(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.has("register") ? "portfolio" : "home";
+    return (params.has("register") || params.has("workshop")) ? "portfolio" : "home";
   });
   const { loading } = useProfile();
 
