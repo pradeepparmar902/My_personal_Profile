@@ -4209,7 +4209,7 @@ export default function Admin() {
               <div className="mx-auto w-60 h-60 bg-white p-4 rounded-2xl shadow-xl flex items-center justify-center border-4 border-[#d4af37]/20">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                    `${window.location.origin}${window.location.pathname}?workshop=${qrProject.id}`
+                    `${window.location.origin}${window.location.pathname}?workshop=${qrProject.id}&v=${Date.now()}`
                   )}`}
                   alt="Workshop Registration QR Code"
                   className="w-full h-full object-contain"
@@ -4241,7 +4241,7 @@ export default function Admin() {
                 <div className="flex gap-2.5 pt-1">
                   <a
                     href={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(
-                      `${window.location.origin}${window.location.pathname}?workshop=${qrProject.id}`
+                      `${window.location.origin}${window.location.pathname}?workshop=${qrProject.id}&v=${Date.now()}`
                     )}`}
                     download={`QR_${qrProject.title.replace(/\s+/g, "_")}.png`}
                     target="_blank"
