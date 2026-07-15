@@ -4209,9 +4209,9 @@ export default function Admin() {
               <div className="mx-auto w-60 h-60 bg-white p-4 rounded-2xl shadow-xl flex items-center justify-center border-4 border-[#d4af37]/20">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                    `${window.location.origin}/?workshop=${qrProject.id}`
+                    `${window.location.origin}${window.location.pathname}?register=${qrProject.id}`
                   )}`}
-                  alt="Student Registration QR Code"
+                  alt="Workshop Registration QR Code"
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -4221,12 +4221,12 @@ export default function Admin() {
                   <input
                     type="text"
                     readOnly
-                    value={`${window.location.origin}/?workshop=${qrProject.id}`}
+                    value={`${window.location.origin}${window.location.pathname}?register=${qrProject.id}`}
                     className="flex-1 bg-transparent border-none text-[11px] text-gray-400 outline-none font-mono px-2"
                   />
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/?workshop=${qrProject.id}`);
+                      navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?register=${qrProject.id}`);
                       setCopiedQrUrl(true);
                       showToast("Invite link copied to clipboard!", "success");
                       setTimeout(() => setCopiedQrUrl(false), 2000);
@@ -4241,7 +4241,7 @@ export default function Admin() {
                 <div className="flex gap-2.5 pt-1">
                   <a
                     href={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(
-                      `${window.location.origin}/?workshop=${qrProject.id}`
+                      `${window.location.origin}${window.location.pathname}?register=${qrProject.id}`
                     )}`}
                     download={`QR_${qrProject.title.replace(/\s+/g, "_")}.png`}
                     target="_blank"
