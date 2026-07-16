@@ -212,6 +212,7 @@ export default function ImageUploader({
                   <h3 className="text-sm font-semibold text-white font-serif uppercase tracking-widest">Adjust Image</h3>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setImageToCrop(null)}
                   className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
                 >
@@ -256,12 +257,14 @@ export default function ImageUploader({
                 
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                   <button
+                    type="button"
                     onClick={() => setImageToCrop(null)}
                     className="px-4 py-2 text-xs text-gray-300 font-semibold rounded-lg hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/10"
                   >
                     Cancel
                   </button>
                   <button
+                    type="button"
                     onClick={uploadCroppedImage}
                     className="px-6 py-2 text-xs text-black font-semibold rounded-lg bg-[#d4af37] hover:bg-[#ebd179] transition-all cursor-pointer shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:shadow-[0_0_25px_rgba(212,175,55,0.6)]"
                   >
