@@ -15,6 +15,7 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
   const [activeFilter, setActiveFilter] = useState("All");
 
   const [selectedWorkshopForReg, setSelectedWorkshopForReg] = useState<any | null>(null);
+  const [selectedWorkshopDetails, setSelectedWorkshopDetails] = useState<any | null>(null);
   const [qrWorkshop, setQrWorkshop] = useState<any | null>(null);
   const [copiedQrUrl, setCopiedQrUrl] = useState(false);
   const [regForm, setRegForm] = useState({
@@ -278,10 +279,13 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                 </div>
 
                 <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                  <span className="text-xs font-mono text-gray-500 flex items-center gap-1.5">
+                  <button 
+                    onClick={() => setSelectedWorkshopDetails(project)}
+                    className="text-xs font-mono text-gray-400 hover:text-[#d4af37] flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
                     <BookOpen size={12} />
                     Full Access
-                  </span>
+                  </button>
                   {project.allowRegistration ? (
                     <div className="flex items-center gap-2">
                       <button
@@ -454,6 +458,88 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
             </div>
           </ScrollReveal>
         </div>
+
+        {/* Full Access Details Modal */}
+        {selectedWorkshopDetails && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto pt-20">
+            <div className="relative w-full max-w-2xl bg-[#0c0c0c] border border-white/10 rounded-2xl shadow-2xl overflow-hidden my-auto animate-fadeIn flex flex-col max-h-[85vh]">
+              <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40 sticky top-0 z-10">
+                <h3 className="text-sm font-semibold text-white font-serif uppercase tracking-widest">Workshop Overview</h3>
+                <button
+                  onClick={() => setSelectedWorkshopDetails(null)}
+                  className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer border-none"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <div className="overflow-y-auto flex-1 p-5 md:p-8 space-y-6 md:space-y-8 custom-scrollbar">
+                {/* Cover Image */}
+                <div className="relative aspect-video rounded-xl overflow-hidden bg-neutral-900 border border-white/5 shadow-inner">
+                  <img
+                    src={cleanGoogleDriveUrl(selectedWorkshopDetails.coverImage) || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=600&auto=format&fit=crop"}
+                    alt={selectedWorkshopDetails.title}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full text-[10px] font-mono tracking-widest bg-black/80 border border-[#d4af37]/30 text-[#d4af37] uppercase font-semibold backdrop-blur-md">
+                    {selectedWorkshopDetails.category}
+                  </div>
+                </div>
+
+                {/* Title & Description */}
+                <div className="space-y-4">
+                  <h2 className="text-2xl md:text-3xl font-bold text-white leading-snug">{selectedWorkshopDetails.title}</h2>
+                  
+                  {selectedWorkshopDetails.allowRegistration && selectedWorkshopDetails.workshopDate && (
+                    <div className="inline-flex items-center gap-2 text-xs md:text-sm text-amber-400 font-mono bg-amber-500/5 border border-amber-500/10 px-4 py-2 rounded-lg">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Next Live Batch: {selectedWorkshopDetails.workshopDate}</span>
+                    </div>
+                  )}
+                  
+                  <div className="prose prose-invert max-w-none text-gray-300 text-sm md:text-base leading-relaxed whitespace-pre-wrap mt-4">
+                    {selectedWorkshopDetails.description}
+                  </div>
+                </div>
+
+                {/* Course Highlights */}
+                {selectedWorkshopDetails.details && (
+                  <div className="p-5 md:p-6 rounded-xl bg-white/[0.02] border border-white/5 space-y-3 mt-6">
+                    <span className="flex items-center gap-2 font-mono text-[#d4af37] font-semibold uppercase tracking-wider text-[11px] md:text-xs">
+                      <CheckCircle className="w-4 h-4" />
+                      Course Highlights
+                    </span>
+                    <div className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                      {selectedWorkshopDetails.details}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-4 md:p-5 border-t border-white/10 bg-black/40 flex justify-end gap-3 sticky bottom-0 z-10">
+                <button
+                  onClick={() => setSelectedWorkshopDetails(null)}
+                  className="px-5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-semibold cursor-pointer transition-colors"
+                >
+                  Close
+                </button>
+                {selectedWorkshopDetails.allowRegistration && (
+                  <button
+                    onClick={() => {
+                      setSelectedWorkshopForReg(selectedWorkshopDetails);
+                      setSubmitSuccess(false);
+                      setSelectedWorkshopDetails(null);
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-bold text-xs tracking-wider uppercase flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-xl transition-all"
+                  >
+                    Request Invite <ArrowRight size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Entry Invite / Registration Form Modal */}
