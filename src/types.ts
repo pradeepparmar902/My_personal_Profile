@@ -44,6 +44,7 @@ export interface Project {
   regCustomQuestion?: string;
   regSuccessMessage?: string;
   formTemplateId?: string; // Links a custom registration form template to this workshop
+  paymentLink?: string; // Razorpay or any payment link URL
   whatsappGroupLink?: string; // WhatsApp group/message link for post-registration connect
 }
 
@@ -156,6 +157,7 @@ export interface RegistrationFormTemplate {
   fields: FormField[];
   createdAt: string;
   isHidden?: boolean;
+  paymentLink?: string; // Razorpay payment link URL
 }
 
 export interface WorkshopRegistration {

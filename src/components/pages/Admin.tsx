@@ -850,7 +850,22 @@ export default function Admin() {
                             Create and manage form templates in the dedicated <strong className="text-amber-400">"Registration Forms"</strong> tab on the sidebar.
                           </p>
                         </div>
-
+                        
+                        <div className="space-y-1.5 text-xs text-left border-t border-white/5 pt-4">
+                          <label className="text-[10px] text-[#d4af37] uppercase font-mono tracking-wider flex items-center gap-1.5">
+                            Razorpay Payment Link URL (Optional)
+                          </label>
+                          <input
+                            type="url"
+                            value={entityForm.paymentLink || ""}
+                            onChange={(e) => setEntityForm({ ...entityForm, paymentLink: e.target.value })}
+                            className="w-full px-3 py-2 bg-neutral-900 border border-[#d4af37]/30 rounded-lg text-white placeholder-gray-600 focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
+                            placeholder="https://rzp.io/l/xxxxxxxx"
+                          />
+                          <p className="text-[10px] text-gray-500 mt-1 leading-relaxed">
+                            If provided, users will see a <strong>"Proceed to Payment"</strong> button linking to this Razorpay page immediately after successfully submitting the registration form.
+                          </p>
+                        </div>
                       </div>
                     )}
 
@@ -1654,6 +1669,22 @@ export default function Admin() {
                       className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
                       required
                     />
+                  </div>
+                  
+                  <div className="space-y-1 pt-2 border-t border-white/5">
+                    <label className="text-[10px] text-[#d4af37] uppercase font-mono tracking-wider flex items-center gap-1.5">
+                      Razorpay Payment Link URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={entityForm.paymentLink || ""}
+                      onChange={(e) => setEntityForm({ ...entityForm, paymentLink: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-900 border border-[#d4af37]/30 rounded-lg text-white placeholder-gray-600 focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all text-sm"
+                      placeholder="https://rzp.io/l/xxxxxxxx"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1 leading-relaxed">
+                      If provided, users will see a <strong>"Proceed to Payment"</strong> button linking to this Razorpay page immediately after successfully submitting this form. (Note: A workshop's individual payment link will override this one).
+                    </p>
                   </div>
 
                   {/* Reusable Fields Library Panel */}

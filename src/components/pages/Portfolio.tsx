@@ -604,13 +604,25 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                     </div>
                   )}
 
-                  <div className="pt-2">
-                    <button 
-                      onClick={() => setSelectedWorkshopForReg(null)}
-                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-bold text-xs tracking-wider uppercase cursor-pointer hover:shadow-lg transition-all"
-                    >
-                      Done & Close
-                    </button>
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    {(selectedWorkshopForReg.paymentLink || selectedForm?.paymentLink) ? (
+                      <a 
+                        href={selectedWorkshopForReg.paymentLink || selectedForm?.paymentLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-indigo-600 hover:to-purple-600 text-white font-bold text-xs tracking-wider uppercase cursor-pointer hover:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all flex items-center gap-2"
+                        onClick={() => setSelectedWorkshopForReg(null)}
+                      >
+                        Proceed to Payment <ArrowRight size={14} />
+                      </a>
+                    ) : (
+                      <button 
+                        onClick={() => setSelectedWorkshopForReg(null)}
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-bold text-xs tracking-wider uppercase cursor-pointer hover:shadow-lg transition-all"
+                      >
+                        Done & Close
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
