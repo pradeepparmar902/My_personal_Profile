@@ -1572,6 +1572,51 @@ export default function Admin() {
                     </div>
                   </div>
 
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Form Header/Banner Image (Optional)</label>
+                    <div className="bg-neutral-950/40 p-3.5 rounded-xl border border-white/5 space-y-3 mb-4">
+                      <ImageUploader 
+                        onUploadComplete={(url) => setEntityForm({ ...entityForm, bannerImage: url })}
+                        currentUrl={entityForm.bannerImage}
+                        pathPrefix="forms"
+                        label="Upload Banner Image"
+                      />
+                      <div className="space-y-1">
+                        <span className="text-[9px] text-gray-400 font-mono block">OR USE EXTERNAL URL:</span>
+                        <input
+                          type="text"
+                          value={entityForm.bannerImage || ""}
+                          onChange={(e) => setEntityForm({ ...entityForm, bannerImage: e.target.value })}
+                          placeholder="Paste image URL"
+                          className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-xs font-mono"
+                        />
+                      </div>
+                      {entityForm.bannerImage && (
+                        <div className="flex items-center gap-3 p-2 bg-black/40 border border-white/5 rounded-lg">
+                          <div className="w-16 h-8 rounded overflow-hidden bg-neutral-950 shrink-0 border border-white/10">
+                            <img 
+                              src={cleanGoogleDriveUrl(entityForm.bannerImage)} 
+                              alt="Preview" 
+                              className="w-full h-full object-cover" 
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[9px] text-gray-400 font-mono block uppercase">Active Image Path:</span>
+                            <span className="text-[10px] text-gray-300 font-mono truncate block">{entityForm.bannerImage}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setEntityForm({ ...entityForm, bannerImage: "" })}
+                            className="text-xs text-red-400 hover:text-red-300 px-2 py-1 font-semibold rounded bg-red-500/10 cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Custom Success Message</label>
                     <input
