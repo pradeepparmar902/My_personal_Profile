@@ -269,10 +269,12 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                     </div>
                   )}
 
-                  <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-5 text-xs text-gray-300 space-y-1">
-                    <span className="font-mono text-[#d4af37] font-semibold block uppercase tracking-wider text-[10px]">Course Highlights:</span>
-                    <p className="leading-relaxed">{project.details || "Includes comprehensive exercises, custom macro automation frameworks, and personal coaching session support."}</p>
-                  </div>
+                  {project.details && (
+                    <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 mb-5 text-xs text-gray-300 space-y-1">
+                      <span className="font-mono text-[#d4af37] font-semibold block uppercase tracking-wider text-[10px]">Course Highlights:</span>
+                      <p className="leading-relaxed">{project.details}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4 border-t border-white/5 flex items-center justify-between">
