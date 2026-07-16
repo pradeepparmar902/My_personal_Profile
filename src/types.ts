@@ -143,6 +143,7 @@ export interface RegistrationFormTemplate {
   id?: string;
   name: string; // Form name to select from workshop
   title: string; // Display header title
+  bannerImage?: string; // Optional banner image URL
   buttonText: string; // Button CTA
   successMessage: string; // Success message
   fields: FormField[];

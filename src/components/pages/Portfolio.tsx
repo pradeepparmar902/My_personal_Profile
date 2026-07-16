@@ -537,6 +537,19 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                   {selectedForm ? (
                     /* DYNAMIC FORM TEMPLATE FIELDS */
                     <div className="space-y-4">
+                      {selectedForm.bannerImage && (
+                        <div className="w-full rounded-xl overflow-hidden border border-white/10 mb-4 bg-black/40 flex items-center justify-center min-h-[100px]">
+                          <img 
+                            src={selectedForm.bannerImage.includes("drive.google.com") 
+                              ? selectedForm.bannerImage.replace("/d/", "/uc?export=view&id=").split("/view")[0]
+                              : selectedForm.bannerImage
+                            } 
+                            alt="Form Banner" 
+                            className="w-full h-auto object-cover max-h-[300px]" 
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                      )}
                       <div className="p-3 bg-[#d4af37]/5 border border-[#d4af37]/15 rounded-xl text-[11px] text-amber-300/90 leading-relaxed font-sans mb-2">
                         📋 Dynamic Template active: <strong className="text-white">{selectedForm.name}</strong>. Please provide your customized credentials below.
                       </div>
