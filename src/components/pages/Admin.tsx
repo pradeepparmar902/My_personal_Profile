@@ -1576,7 +1576,7 @@ export default function Admin() {
                     <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Form Header/Banner Image (Optional)</label>
                     <div className="bg-neutral-950/40 p-3.5 rounded-xl border border-white/5 space-y-3 mb-4">
                       <ImageUploader 
-                        onUploadComplete={(url) => setEntityForm({ ...entityForm, bannerImage: url })}
+                        onUploadComplete={(url) => setEntityForm(prev => ({ ...prev, bannerImage: url }))}
                         currentUrl={entityForm.bannerImage}
                         pathPrefix="forms"
                         label="Upload Banner Image"
@@ -1586,7 +1586,7 @@ export default function Admin() {
                         <input
                           type="text"
                           value={entityForm.bannerImage || ""}
-                          onChange={(e) => setEntityForm({ ...entityForm, bannerImage: e.target.value })}
+                          onChange={(e) => setEntityForm(prev => ({ ...prev, bannerImage: e.target.value }))}
                           placeholder="Paste image URL"
                           className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-xs font-mono"
                         />
@@ -1607,7 +1607,7 @@ export default function Admin() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setEntityForm({ ...entityForm, bannerImage: "" })}
+                            onClick={() => setEntityForm(prev => ({ ...prev, bannerImage: "" }))}
                             className="text-xs text-red-400 hover:text-red-300 px-2 py-1 font-semibold rounded bg-red-500/10 cursor-pointer"
                           >
                             Remove
