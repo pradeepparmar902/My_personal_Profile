@@ -835,13 +835,13 @@ export default function Admin() {
                         </div>
                         <div className="flex flex-col sm:flex-row items-center gap-6">
                           <div className="p-3 bg-white rounded-lg flex-shrink-0">
-                            <QRCodeCanvas 
-                              id={`qr-${entityForm.id}`}
-                              value={`${window.location.origin}${window.location.pathname}?register=${entityForm.id}`} 
-                              size={120} 
-                              level="H"
-                              fgColor="#000000"
-                              bgColor="#ffffff"
+                          <div className="p-3 bg-white rounded-lg flex-shrink-0 w-[120px] h-[120px]">
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+                                `${window.location.origin}${window.location.pathname}?workshop=${entityForm.id}&v=${Date.now()}`
+                              )}`}
+                              alt="Workshop Registration QR Code"
+                              className="w-full h-full object-contain"
                             />
                           </div>
                           <div className="space-y-3 text-center sm:text-left">
@@ -851,17 +851,21 @@ export default function Admin() {
                                 Users can scan this QR code to be instantly routed to the registration form for <strong>"{entityForm.title}"</strong>.
                               </p>
                               <p className="text-[9px] text-[#d4af37] font-mono mt-1 break-all">
-                                {window.location.origin}{window.location.pathname}?register={entityForm.id}
+                                {window.location.origin}{window.location.pathname}?workshop={entityForm.id}
                               </p>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => downloadQRCode(entityForm.id, entityForm.title)}
-                              className="px-4 py-2 rounded-lg bg-[#d4af37] hover:bg-amber-500 text-black font-bold text-xs flex items-center gap-2 transition-all shadow-md mx-auto sm:mx-0 cursor-pointer"
+                            <a
+                              href={`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(
+                                `${window.location.origin}${window.location.pathname}?workshop=${entityForm.id}&v=${Date.now()}`
+                              )}`}
+                              download={`QR_${entityForm.title?.replace(/\s+/g, "_")}.png`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-4 py-2 rounded-lg bg-[#d4af37] hover:bg-amber-500 text-black font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md mx-auto sm:mx-0 w-fit"
                             >
                               <Download size={14} />
                               Download QR Code
-                            </button>
+                            </a>
                           </div>
                         </div>
                       </div>
