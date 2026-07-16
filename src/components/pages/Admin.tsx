@@ -1580,6 +1580,7 @@ export default function Admin() {
                         currentUrl={entityForm.bannerImage}
                         pathPrefix="forms"
                         label="Upload Banner Image"
+                        aspectRatio={21/9}
                       />
                       <div className="space-y-1">
                         <span className="text-[9px] text-gray-400 font-mono block">OR USE EXTERNAL URL:</span>

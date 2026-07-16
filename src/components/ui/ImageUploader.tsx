@@ -1,6 +1,9 @@
-import React, { useState, useRef } from "react";
-import { Upload, ImageIcon, Loader2, Check, AlertCircle } from "lucide-react";
+import React, { useState, useRef, useCallback } from "react";
+import { Upload, Loader2, Check, AlertCircle, X, Crop as CropIcon } from "lucide-react";
 import { uploadImageToFirebase } from "../../lib/imageUtils";
+import Cropper from "react-easy-crop";
+import getCroppedImg, { PixelCrop } from "../../lib/cropImage";
+import { motion, AnimatePresence } from "motion/react";
 
 interface ImageUploaderProps {
   id?: string;
@@ -10,6 +13,7 @@ interface ImageUploaderProps {
   maxWidth?: number;
   maxHeight?: number;
   label?: string;
+  aspectRatio?: number; // E.g., 21/9 or 1
 }
 
 export default function ImageUploader({
@@ -17,9 +21,10 @@ export default function ImageUploader({
   onUploadComplete,
   currentUrl = "",
   pathPrefix = "profile",
-  maxWidth = 600,
-  maxHeight = 600,
-  label = "Upload Image"
+  maxWidth = 1200,
+  maxHeight = 1200,
+  label = "Upload Image",
+  aspectRatio
 }: ImageUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState<{
@@ -27,19 +32,46 @@ export default function ImageUploader({
     message: string;
   }>({ type: "idle", message: "" });
   const [isDragActive, setIsDragActive] = useState(false);
+  
+  // Crop states
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<PixelCrop | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = async (file: File) => {
+  const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: PixelCrop) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       setStatus({ type: "error", message: "Only image files are allowed." });
       return;
     }
 
-    setIsUploading(true);
     setStatus({ type: "idle", message: "" });
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      setImageToCrop(reader.result?.toString() || null);
+    });
+    reader.readAsDataURL(file);
+    // Reset file input so same file can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const uploadCroppedImage = async () => {
+    if (!imageToCrop || !croppedAreaPixels) return;
+
+    setIsUploading(true);
+    setImageToCrop(null); // Close cropper modal
 
     try {
-      const result = await uploadImageToFirebase(file, pathPrefix, maxWidth, maxHeight);
+      const croppedFile = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      if (!croppedFile) throw new Error("Failed to crop image.");
+
+      const result = await uploadImageToFirebase(croppedFile, pathPrefix, maxWidth, maxHeight);
       onUploadComplete(result.url);
       
       if (result.fallbackUsed) {
@@ -123,7 +155,7 @@ export default function ImageUploader({
         {isUploading ? (
           <div className="flex flex-col items-center space-y-2 text-center">
             <Loader2 className="w-8 h-8 text-[#d4af37] animate-spin" />
-            <p className="text-xs font-mono text-gray-400">Processing and uploading image...</p>
+            <p className="text-xs font-mono text-gray-400">Cropping and uploading image...</p>
           </div>
         ) : (
           <div className="flex flex-col items-center space-y-2 text-center">
@@ -158,6 +190,89 @@ export default function ImageUploader({
           <span className="font-mono">{status.message}</span>
         </div>
       )}
+
+      {/* Cropper Modal */}
+      <AnimatePresence>
+        {imageToCrop && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-4xl h-[80vh] bg-[#0c0c0c] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            >
+              <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">
+                <div className="flex items-center gap-3">
+                  <CropIcon className="w-5 h-5 text-[#d4af37]" />
+                  <h3 className="text-sm font-semibold text-white font-serif uppercase tracking-widest">Adjust Image</h3>
+                </div>
+                <button
+                  onClick={() => setImageToCrop(null)}
+                  className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="relative flex-1 bg-black/60">
+                <Cropper
+                  image={imageToCrop}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={aspectRatio || undefined}
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
+                  classes={{
+                    containerClassName: "absolute inset-0",
+                    mediaClassName: "max-w-none"
+                  }}
+                  style={{
+                    containerStyle: { background: 'transparent' },
+                    cropAreaStyle: { border: '2px solid rgba(212, 175, 55, 0.8)', boxShadow: '0 0 0 9999em rgba(0, 0, 0, 0.7)' }
+                  }}
+                />
+              </div>
+
+              <div className="p-4 border-t border-white/10 bg-black/40 flex items-center justify-between">
+                <div className="flex-1 max-w-xs space-y-1 hidden sm:block">
+                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-widest">Zoom</label>
+                  <input
+                    type="range"
+                    value={zoom}
+                    min={1}
+                    max={3}
+                    step={0.1}
+                    aria-labelledby="Zoom"
+                    onChange={(e) => setZoom(Number(e.target.value))}
+                    className="w-full accent-[#d4af37]"
+                  />
+                </div>
+                
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                  <button
+                    onClick={() => setImageToCrop(null)}
+                    className="px-4 py-2 text-xs text-gray-300 font-semibold rounded-lg hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-white/10"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={uploadCroppedImage}
+                    className="px-6 py-2 text-xs text-black font-semibold rounded-lg bg-[#d4af37] hover:bg-[#ebd179] transition-all cursor-pointer shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:shadow-[0_0_25px_rgba(212,175,55,0.6)]"
+                  >
+                    Confirm & Upload
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
