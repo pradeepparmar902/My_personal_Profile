@@ -281,9 +281,9 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                 <div className="pt-4 border-t border-white/5 flex items-center justify-between">
                   <button 
                     onClick={() => setSelectedWorkshopDetails(project)}
-                    className="text-xs font-mono text-gray-400 hover:text-[#d4af37] flex items-center gap-1.5 cursor-pointer transition-colors"
+                    className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-mono text-gray-300 hover:text-[#d4af37] hover:bg-white/10 hover:border-[#d4af37]/30 flex items-center gap-1.5 cursor-pointer transition-all"
                   >
-                    <BookOpen size={12} />
+                    <BookOpen size={14} />
                     Full Access
                   </button>
                   {project.allowRegistration ? (
