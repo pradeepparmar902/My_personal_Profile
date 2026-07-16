@@ -834,7 +834,6 @@ export default function Admin() {
                           <span>Workshop Entry QR Code</span>
                         </div>
                         <div className="flex flex-col sm:flex-row items-center gap-6">
-                          <div className="p-3 bg-white rounded-lg flex-shrink-0">
                           <div className="p-3 bg-white rounded-lg flex-shrink-0 w-[120px] h-[120px]">
                             <img
                               src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
