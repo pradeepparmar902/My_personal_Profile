@@ -11,12 +11,16 @@ export default function Navbar({ currentTab, setCurrentTab }: NavbarProps) {
   const { profile, isAdmin } = useProfile();
   const [isOpen, setIsOpen] = useState(false);
 
-  const navItems = [
-    { id: "home", label: "Home" },
-    { id: "about", label: "About" },
-    { id: "portfolio", label: "Workshops" },
-    { id: "contact", label: "Contact" },
+  const defaultNavItems = [
+    { id: "home", label: "Home", isHidden: false },
+    { id: "about", label: "About", isHidden: false },
+    { id: "portfolio", label: "Workshops", isHidden: false },
+    { id: "contact", label: "Contact", isHidden: false },
   ];
+
+  const navItems = profile?.navConfig?.length 
+    ? profile.navConfig.filter(item => !item.isHidden)
+    : defaultNavItems;
 
   const handleNavClick = (tabId: string) => {
     setCurrentTab(tabId);

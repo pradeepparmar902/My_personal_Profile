@@ -1,3 +1,9 @@
+export interface NavItemConfig {
+  id: string;
+  label: string;
+  isHidden: boolean;
+}
+
 export interface Profile {
   id?: string;
   name: string;
@@ -19,6 +25,7 @@ export interface Profile {
   highlights?: { title: string; description: string }[];
   skillCategoryOrder?: string[];
   coachingHours?: string;
+  navConfig?: NavItemConfig[];
 }
 
 export interface Project {

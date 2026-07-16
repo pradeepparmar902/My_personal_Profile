@@ -143,6 +143,32 @@ export default function Admin() {
 
   // CMS view states
   const [activeTab, setActiveTab] = useState("profile");
+  const [localNavConfig, setLocalNavConfig] = useState<any[]>(
+    profile?.navConfig?.length 
+      ? [...profile.navConfig] 
+      : [
+          { id: "home", label: "Home", isHidden: false },
+          { id: "about", label: "About", isHidden: false },
+          { id: "portfolio", label: "Workshops", isHidden: false },
+          { id: "contact", label: "Contact", isHidden: false },
+        ]
+  );
+
+  React.useEffect(() => {
+    if (activeTab === "navigation") {
+      setLocalNavConfig(
+        profile?.navConfig?.length 
+          ? [...profile.navConfig] 
+          : [
+              { id: "home", label: "Home", isHidden: false },
+              { id: "about", label: "About", isHidden: false },
+              { id: "portfolio", label: "Workshops", isHidden: false },
+              { id: "contact", label: "Contact", isHidden: false },
+            ]
+      );
+    }
+  }, [activeTab, profile?.navConfig]);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingType, setEditingType] = useState<string | null>(null);
   const [selectedSkillCategory, setSelectedSkillCategory] = useState("All");
@@ -597,6 +623,7 @@ export default function Admin() {
             { id: "positions", label: "Affiliations", icon: Link2 },
             { id: "messages", label: "Contact Inbox", icon: Mail },
             { id: "registrations", label: "Workshop Invites", icon: Calendar },
+            { id: "navigation", label: "Site Navigation", icon: List },
             { id: "system", label: "System Controls", icon: Sliders },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -4160,6 +4187,81 @@ export default function Admin() {
                           >
                             <Trash2 size={14} />
                           </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "navigation" && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                    <div>
+                      <h3 className="text-lg font-serif font-semibold text-white flex items-center gap-2">
+                        <List className="text-[#d4af37]" size={20} />
+                        Site Navigation
+                      </h3>
+                      <p className="text-sm text-gray-400 mt-1">Reorder or hide the top navigation links for the public website.</p>
+                    </div>
+                    <button
+                      onClick={() => updateProfile({ navConfig: localNavConfig }).then(() => showToast("Navigation settings saved!", "success"))}
+                      className="px-4 py-2 bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-semibold rounded-xl hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all flex items-center gap-2"
+                    >
+                      <Save size={16} />
+                      Save Navigation
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {localNavConfig.map((item, index) => (
+                      <div key={item.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <span className={`font-medium ${item.isHidden ? "text-gray-500 line-through" : "text-white"}`}>
+                            {item.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              const newConfig = [...localNavConfig];
+                              newConfig[index].isHidden = !newConfig[index].isHidden;
+                              setLocalNavConfig(newConfig);
+                            }}
+                            className={`p-2 rounded-lg ${item.isHidden ? "text-gray-400 hover:text-white bg-white/5" : "text-[#d4af37] hover:text-amber-400 bg-[#d4af37]/10"}`}
+                            title={item.isHidden ? "Show on website" : "Hide from website"}
+                          >
+                            {item.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                          
+                          <div className="flex items-center border border-white/10 rounded-lg overflow-hidden ml-4">
+                            <button
+                              disabled={index === 0}
+                              onClick={() => {
+                                const newConfig = [...localNavConfig];
+                                const temp = newConfig[index - 1];
+                                newConfig[index - 1] = newConfig[index];
+                                newConfig[index] = temp;
+                                setLocalNavConfig(newConfig);
+                              }}
+                              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ArrowUp size={16} />
+                            </button>
+                            <div className="w-px h-4 bg-white/10" />
+                            <button
+                              disabled={index === localNavConfig.length - 1}
+                              onClick={() => {
+                                const newConfig = [...localNavConfig];
+                                const temp = newConfig[index + 1];
+                                newConfig[index + 1] = newConfig[index];
+                                newConfig[index] = temp;
+                                setLocalNavConfig(newConfig);
+                              }}
+                              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ArrowDown size={16} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
