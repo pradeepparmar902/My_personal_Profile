@@ -11,8 +11,14 @@ interface PortfolioProps {
 }
 
 export default function Portfolio({ setCurrentTab }: PortfolioProps) {
-  const { projects, projectCategories, registrationForms = [], addEntity } = useProfile();
+  const { projects, projectCategories, registrationForms = [], addEntity, addMessage } = useProfile();
   const [activeFilter, setActiveFilter] = useState("All");
+
+  const [selectedWorkshopForContact, setSelectedWorkshopForContact] = useState<any | null>(null);
+  const [contactForm, setContactForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
 
   const [selectedWorkshopForReg, setSelectedWorkshopForReg] = useState<any | null>(null);
   const [selectedWorkshopDetails, setSelectedWorkshopDetails] = useState<any | null>(null);
@@ -79,6 +85,33 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
       }
     }
   }, [projects]);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name || !contactForm.email || !contactForm.message) {
+      setContactError("Please complete all required fields.");
+      return;
+    }
+    
+    setContactSubmitting(true);
+    setContactError(null);
+    
+    try {
+      await addMessage({
+        name: contactForm.name,
+        email: contactForm.email,
+        subject: contactForm.subject || `Inquiry about ${selectedWorkshopForContact?.title || 'Workshop'}`,
+        message: contactForm.message,
+        createdAt: new Date().toISOString()
+      });
+      setContactSubmitted(true);
+      setContactForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err: any) {
+      setContactError(err.message || "Failed to send message. Please try again.");
+    } finally {
+      setContactSubmitting(false);
+    }
+  };
 
   const handleRegSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,17 +366,12 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                       </button>
                     </div>
                   ) : (
-                    project.link && (
-                      <a
-                        href={project.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 rounded-full bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-semibold text-xs tracking-wide shadow-lg hover:shadow-xl transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        Book Session
-                        <ExternalLink size={10} />
-                      </a>
-                    )
+                    <button
+                      onClick={() => setSelectedWorkshopForContact(project)}
+                      className="px-4 py-2 rounded-full bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-semibold text-xs tracking-wide shadow-lg hover:shadow-xl transition-all flex items-center gap-1 cursor-pointer"
+                    >
+                      Book Session
+                    </button>
                   )}
                   </div>
                 </TiltCard>
@@ -558,6 +586,137 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
       </section>
 
       {/* Entry Invite / Registration Form Modal */}
+      
+      {/* Contact Form Modal (Fallback for Book Session) */}
+      {selectedWorkshopForContact && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-neutral-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden my-8">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-white/10 bg-neutral-900/50 flex items-center justify-between sticky top-0 z-10 backdrop-blur-xl">
+              <div className="flex items-center gap-3">
+                <Mail className="text-[#d4af37]" size={18} />
+                <div>
+                  <h3 className="text-base font-semibold text-white">Contact for Booking</h3>
+                  <p className="text-[10px] text-gray-400 font-mono tracking-wider uppercase mt-0.5">Send a message</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedWorkshopForContact(null);
+                  setContactSubmitted(false);
+                  setContactError(null);
+                }}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors group cursor-pointer"
+              >
+                <X size={16} className="text-gray-400 group-hover:text-white" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[80vh] custom-scrollbar">
+              {contactSubmitted ? (
+                <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
+                  <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                    <CheckCircle className="text-emerald-500" size={32} />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-white mb-2">Message Sent!</h4>
+                    <p className="text-sm text-gray-400 leading-relaxed">
+                      Thank you for your interest in <strong>"{selectedWorkshopForContact.title}"</strong>. 
+                      Pradeep Parmar will review your message and get back to you shortly.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedWorkshopForContact(null);
+                      setContactSubmitted(false);
+                    }}
+                    className="mt-4 px-6 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white font-semibold text-xs tracking-wider uppercase cursor-pointer transition-colors"
+                  >
+                    Close Window
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  <p className="text-xs text-gray-400 mb-4 leading-relaxed">
+                    Please fill out the form below to book a session for <strong className="text-white">"{selectedWorkshopForContact.title}"</strong> or ask any questions you may have.
+                  </p>
+                  
+                  {contactError && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-medium">
+                      {contactError}
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Your Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={contactForm.name}
+                      onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                      placeholder="e.g. John Doe"
+                      className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Email Address *</label>
+                    <input
+                      type="email"
+                      required
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                      placeholder="e.g. john@example.com"
+                      className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Subject</label>
+                    <input
+                      type="text"
+                      value={contactForm.subject}
+                      onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
+                      placeholder={`Inquiry about ${selectedWorkshopForContact.title}`}
+                      className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Message *</label>
+                    <textarea
+                      rows={4}
+                      required
+                      value={contactForm.message}
+                      onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                      placeholder="How can we help you?"
+                      className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all custom-scrollbar resize-y"
+                    />
+                  </div>
+
+                  <div className="pt-4 pb-2">
+                    <button
+                      type="submit"
+                      disabled={contactSubmitting}
+                      className={`w-full py-3.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-amber-500 hover:from-amber-500 hover:to-amber-600 text-black font-bold text-sm tracking-wide shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_25px_rgba(212,175,55,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer ${contactSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+                    >
+                      {contactSubmitting ? (
+                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span>Send Message</span>
+                          <ArrowRight size={16} />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedWorkshopForReg && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
           <div className="relative w-full max-w-lg bg-neutral-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden my-8">
