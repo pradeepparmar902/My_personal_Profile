@@ -683,6 +683,23 @@ export default function Admin() {
 
         <div className="flex items-center gap-3">
           <button
+            onClick={handleForceReset}
+            disabled={resetting}
+            className="px-4 py-2 text-xs font-semibold rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/25 transition-all flex items-center gap-1.5 cursor-pointer shadow-lg"
+          >
+            {resetting ? (
+              <>
+                <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+                Resetting...
+              </>
+            ) : (
+              <>
+                <Database size={12} />
+                Master Reset (Fallback Data)
+              </>
+            )}
+          </button>
+          <button
             onClick={handleExportData}
             className="px-4 py-2 text-xs font-semibold rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
           >
@@ -2764,7 +2781,12 @@ export default function Admin() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-neutral-950/40 p-3.5 rounded-xl border border-white/5">
                           <div className="md:col-span-2 space-y-3">
                             <ImageUploader 
-                              onUploadComplete={(url) => setProfileForm({ ...profileForm, aboutAvatarUrl: url })}
+                              onUploadComplete={async (url) => {
+                                const newProfile = { ...profileForm, aboutAvatarUrl: url };
+                                setProfileForm(newProfile);
+                                await updateProfile(newProfile);
+                                showToast("Profile image updated and saved to live site!", "success");
+                              }}
                               currentUrl={profileForm.aboutAvatarUrl}
                               pathPrefix="avatars"
                               label="Upload About Page Portrait"
