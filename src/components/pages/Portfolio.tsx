@@ -824,9 +824,12 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                           />
                         </div>
                       )}
-                      <div className="p-3 bg-[#d4af37]/5 border border-[#d4af37]/15 rounded-xl text-[11px] text-amber-300/90 leading-relaxed font-sans mb-2">
-                        📋 Dynamic Template active: <strong className="text-white">{selectedForm.name}</strong>. Please provide your customized credentials below.
-                      </div>
+                        <div className="p-3 bg-[#d4af37]/5 border border-[#d4af37]/15 rounded-xl text-[11px] text-amber-300/90 leading-relaxed font-sans mb-2 flex items-start gap-2">
+                          <CheckCircle size={14} className="text-[#d4af37] shrink-0 mt-0.5" />
+                          <span>
+                            Please provide the following details to complete your registration for <strong className="text-white">{selectedForm.name}</strong>.
+                          </span>
+                        </div>
 
                       {(selectedForm.fields || []).map((field: any) => {
                         // Check if field should be visible conditionally
