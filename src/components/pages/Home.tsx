@@ -385,12 +385,15 @@ export default function Home({ setCurrentTab }: HomeProps) {
                 </div>
 
                 {/* Floating Badge */}
-                <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-neutral-900 to-black border border-[#d4af37]/30 px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xl">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs font-mono font-medium text-white tracking-wider">
+                <button 
+                  onClick={() => setCurrentTab("contact")}
+                  className="absolute -bottom-2 -right-2 bg-gradient-to-r from-neutral-900 to-black border border-[#d4af37]/30 px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xl hover:scale-105 hover:border-[#d4af37]/60 transition-all cursor-pointer group/btn"
+                >
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse group-hover/btn:bg-green-400" />
+                  <span className="text-xs font-mono font-medium text-white tracking-wider group-hover/btn:text-[#d4af37] transition-colors">
                     Booking Sessions
                   </span>
-                </div>
+                </button>
               </div>
             </ScrollReveal>
           </div>
