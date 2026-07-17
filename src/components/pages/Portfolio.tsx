@@ -246,6 +246,11 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
           {filteredProjects.map((project, index) => (
               <ScrollReveal key={project.id || index} delay={index * 0.1}>
                 <div className="group relative h-full rounded-2xl p-[2px] transition-transform duration-500 hover:-translate-y-2">
+                  {project.statusBadge && (
+                    <div className="absolute -top-3 left-6 z-30 bg-gradient-to-r from-amber-500 to-[#d4af37] text-black px-4 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-[0_4px_15px_rgba(212,175,55,0.4)] border border-[#d4af37]">
+                      {project.statusBadge}
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400 via-[#d4af37] to-purple-500 opacity-30 group-hover:opacity-100 blur-[4px] group-hover:blur-[8px] transition-all duration-500 animate-pulse" />
                   <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400 via-[#d4af37] to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
                   

@@ -745,6 +745,16 @@ export default function Admin() {
                         ))}
                       </select>
                     </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Status Badge</label>
+                      <input
+                        type="text"
+                        value={entityForm.statusBadge || ""}
+                        onChange={(e) => setEntityForm({ ...entityForm, statusBadge: e.target.value })}
+                        placeholder="e.g. Hot Selling, Registration Open"
+                        className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Brief Description</label>

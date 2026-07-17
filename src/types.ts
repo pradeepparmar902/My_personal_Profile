@@ -38,6 +38,7 @@ export interface Project {
   details: string;
   order?: number;
   isHidden?: boolean;
+  statusBadge?: string;
   allowRegistration?: boolean;
   workshopDate?: string;
   regFormTitle?: string;
