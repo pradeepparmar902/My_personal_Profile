@@ -49,7 +49,8 @@ import {
   Table,
   Download,
   List,
-  Send
+  Send,
+  Upload
 } from "lucide-react";
 
 // Icon mapper for skills
@@ -102,6 +103,47 @@ const DEFAULT_PROFILE = {
   ]
 };
 
+
+const BulkImportButton = ({ colName, addEntity, refreshData, showToast }: { colName: string, addEntity: any, refreshData: any, showToast: any }) => {
+  const [loading, setLoading] = useState(false);
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        const data = JSON.parse(text);
+        if (!Array.isArray(data)) throw new Error("JSON must be an array of objects");
+        for (const item of data) {
+          await addEntity(colName, item);
+        }
+        await refreshData();
+        showToast(`Successfully imported ${data.length} items to ${colName}`, "success");
+      } catch (err: any) {
+        showToast("Failed to import JSON: " + err.message, "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  return (
+    <label className={`px-3 py-1.5 bg-blue-500/20 border border-blue-500/40 text-blue-400 text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer hover:bg-blue-500/30 transition-all ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+      {loading ? (
+        <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <Upload size={12} />
+      )}
+      Import JSON
+      <input type="file" accept=".json" onChange={handleUpload} className="hidden" />
+    </label>
+  );
+};
+
 export default function Admin() {
   const { 
     profile, 
@@ -124,8 +166,9 @@ export default function Admin() {
     updateEntity, 
     deleteEntity, 
     setAdminStatus, 
-    logoutAdmin 
-  } = useProfile();
+    logoutAdmin,
+      refreshData 
+    } = useProfile();
 
   // Toast state for iframe-safe feedback
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
@@ -2888,13 +2931,16 @@ export default function Admin() {
                     <h3 className="text-lg font-serif font-semibold text-white">
                       Programs & Workshops Catalogue
                     </h3>
-                    <button
+                    <div className="flex items-center gap-2">
+  <BulkImportButton colName="projects" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
+  <button
                       onClick={() => openAddEntity("project", { category: projectCategories.length > 0 ? projectCategories[0].name : "Technical" })}
                       className="px-4 py-2 bg-[#d4af37] text-black text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg"
                     >
                       <Plus size={14} />
                       Add Workshop
                     </button>
+</div>
                   </div>
 
                   {/* Workshop Categories Management */}
@@ -2909,13 +2955,16 @@ export default function Admin() {
                           Create categories first to organize your workshops.
                         </p>
                       </div>
-                      <button
+                      <div className="flex items-center gap-2">
+  <BulkImportButton colName="project_categories" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
+  <button
                         onClick={() => openAddEntity("project_category", { order: 0, isHidden: false })}
                         className="px-3 py-1.5 bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
                       >
                         <Plus size={12} />
                         Add Category
                       </button>
+</div>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
@@ -3066,13 +3115,16 @@ export default function Admin() {
                       </h3>
                       <p className="text-xs text-gray-400 mt-1">Design custom forms with specific data types and attach them to any workshop.</p>
                     </div>
-                    <button
+                    <div className="flex items-center gap-2">
+  <BulkImportButton colName="registration_forms" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
+  <button
                       onClick={() => openAddEntity("registration_form", { name: "New Dynamic Form Template", title: "Workshop Entry Invite", buttonText: "Request Invite", successMessage: "Your registration has been securely logged.", fields: [] })}
                       className="px-4 py-2 bg-[#d4af37] text-black text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg hover:bg-amber-400 transition-all"
                     >
                       <Plus size={14} />
                       Create Form Template
                     </button>
+</div>
                   </div>
 
                   {/* Form Builder Intro */}
@@ -3178,13 +3230,16 @@ export default function Admin() {
                         <Info size={14} />
                         Tab Categories (IT, Excel, Mind Game)
                       </h3>
-                      <button
+                      <div className="flex items-center gap-2">
+  <BulkImportButton colName="achievement_categories" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
+  <button
                         onClick={() => openAddEntity("achievement_category", { order: 0, icon: "Laptop" })}
                         className="px-3 py-1.5 bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
                       >
                         <Plus size={12} />
                         Add Tab Category
                       </button>
+</div>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
@@ -3291,13 +3346,16 @@ export default function Admin() {
                         <Info size={14} />
                         Organization Types
                       </h3>
-                      <button
+                      <div className="flex items-center gap-2">
+  <BulkImportButton colName="position_types" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
+  <button
                         onClick={() => openAddEntity("position_type", { icon: "Shield", isHidden: false })}
                         className="px-3 py-1.5 bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
                       >
                         <Plus size={12} />
                         Add Org Type
                       </button>
+</div>
                     </div>
 
                     <div className="flex flex-wrap gap-3">
@@ -4139,13 +4197,16 @@ export default function Admin() {
                     <h3 className="text-lg font-serif font-semibold text-white">
                       Career Experience History
                     </h3>
-                    <button
+                    <div className="flex items-center gap-2">
+  <BulkImportButton colName="experience" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
+  <button
                       onClick={() => openAddEntity("experience", {})}
                       className="px-4 py-2 bg-[#d4af37] text-black text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg"
                     >
                       <Plus size={14} />
                       Add Experience
                     </button>
+</div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
@@ -4207,13 +4268,16 @@ export default function Admin() {
                         Organize your competencies like Technical, Core, NLP, or Soft skills.
                       </p>
                     </div>
-                    <button
+                    <div className="flex items-center gap-2">
+  <BulkImportButton colName="skills" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
+  <button
                       onClick={() => openAddEntity("skill", { category: "Technical", percentage: 90 })}
                       className="px-4 py-2 bg-[#d4af37] text-black text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg hover:bg-amber-400 transition-colors"
                     >
                       <Plus size={14} />
                       Add Skill
                     </button>
+</div>
                   </div>
 
                   {/* Category Reordering Panel */}
@@ -4412,13 +4476,16 @@ export default function Admin() {
                     <h3 className="text-lg font-serif font-semibold text-white">
                       Student & Client Endorsements
                     </h3>
-                    <button
+                    <div className="flex items-center gap-2">
+  <BulkImportButton colName="testimonials" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
+  <button
                       onClick={() => openAddEntity("testimonial", {})}
                       className="px-4 py-2 bg-[#d4af37] text-black text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg"
                     >
                       <Plus size={14} />
                       Add Testimonial
                     </button>
+</div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
@@ -4480,7 +4547,7 @@ export default function Admin() {
                       <p className="text-sm text-gray-400 mt-1">Reorder or hide the top navigation links for the public website.</p>
                     </div>
                     <button
-                      onClick={() => updateProfile({ navConfig: localNavConfig }).then(() => showToast("Navigation settings saved!", "success"))}
+                      onClick={() => updateProfile({ navConfig: localNavConfig } as any).then(() => showToast("Navigation settings saved!", "success"))}
                       className="px-4 py-2 bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-semibold rounded-xl hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all flex items-center gap-2"
                     >
                       <Save size={16} />
