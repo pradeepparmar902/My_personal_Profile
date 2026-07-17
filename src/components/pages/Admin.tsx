@@ -391,6 +391,7 @@ export default function Admin() {
     else if (editingType === "experience") colName = "experience";
     else if (editingType === "skill") colName = "skills";
     else if (editingType === "testimonial") colName = "testimonials";
+    else if (editingType === "project_category") colName = "project_categories";
     else if (editingType === "achievement_category") colName = "achievement_categories";
     else if (editingType === "achievement") colName = "achievements";
     else if (editingType === "position_type") colName = "position_types";
@@ -453,6 +454,7 @@ export default function Admin() {
     else if (type === "experience") colName = "experience";
     else if (type === "skill") colName = "skills";
     else if (type === "testimonial") colName = "testimonials";
+    else if (type === "project_category") colName = "project_categories";
     else if (type === "achievement_category") colName = "achievement_categories";
     else if (type === "achievement") colName = "achievements";
     else if (type === "position_type") colName = "position_types";
@@ -685,26 +687,17 @@ export default function Admin() {
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Category</label>
-                      <input
-                        type="text"
-                        value={entityForm.category || "Technical"}
+                      <select
+                        value={entityForm.category || (projectCategories.length > 0 ? projectCategories[0].name : "Technical")}
                         onChange={(e) => setEntityForm({ ...entityForm, category: e.target.value })}
-                        placeholder="e.g. Technical, Mindset, Holistic"
                         className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
                         required
-                      />
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {Array.from(new Set(projects.map(p => p.category || "Technical"))).filter(Boolean).map((cat) => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => setEntityForm({ ...entityForm, category: cat })}
-                            className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors border ${entityForm.category === cat ? "bg-[#d4af37]/20 border-[#d4af37]/50 text-[#d4af37]" : "bg-white/5 border-white/10 text-gray-400 hover:text-white"}`}
-                          >
-                            {cat}
-                          </button>
+                      >
+                        {projectCategories.length === 0 && <option value="Technical">Technical</option>}
+                        {projectCategories.filter(c => !c.isHidden).map((cat) => (
+                          <option key={cat.id} value={cat.name}>{cat.name}</option>
                         ))}
-                      </div>
+                      </select>
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -1256,6 +1249,39 @@ export default function Admin() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PROJECT CATEGORIES TYPE FIELDS */}
+              {editingType === "project_category" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Category Name</label>
+                      <input
+                        type="text"
+                        value={entityForm.name || ""}
+                        onChange={(e) => setEntityForm({ ...entityForm, name: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Visibility</label>
+                      <div className="flex items-center gap-2 h-full py-2">
+                        <input
+                          type="checkbox"
+                          id="catIsHidden"
+                          checked={!!entityForm.isHidden}
+                          onChange={(e) => setEntityForm({ ...entityForm, isHidden: e.target.checked })}
+                          className="w-4 h-4 rounded border-white/10 bg-neutral-900 text-red-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                        />
+                        <label htmlFor="catIsHidden" className="text-xs font-semibold text-red-400 cursor-pointer">
+                          Hide from public website
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2741,12 +2767,65 @@ export default function Admin() {
                       Programs & Workshops Catalogue
                     </h3>
                     <button
-                      onClick={() => openAddEntity("project", { category: "Technical" })}
+                      onClick={() => openAddEntity("project", { category: projectCategories.length > 0 ? projectCategories[0].name : "Technical" })}
                       className="px-4 py-2 bg-[#d4af37] text-black text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-lg"
                     >
                       <Plus size={14} />
                       Add Workshop
                     </button>
+                  </div>
+
+                  {/* Workshop Categories Management */}
+                  <div className="pt-2 pb-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-[#d4af37] font-mono uppercase tracking-widest flex items-center gap-2">
+                          <Info size={14} />
+                          Workshop Categories
+                        </h3>
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          Create categories first to organize your workshops.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => openAddEntity("project_category", { order: 0, isHidden: false })}
+                        className="px-3 py-1.5 bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37] text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus size={12} />
+                        Add Category
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      {projectCategories.map((c) => (
+                        <div 
+                          key={c.id} 
+                          className={`px-3.5 py-1.5 rounded-full border text-xs flex items-center gap-2 ${c.isHidden ? "bg-red-500/10 border-red-500/20 text-gray-400" : "bg-white/5 border-white/10 text-white"}`}
+                        >
+                          <span className="font-semibold">{c.name}</span>
+                          {c.isHidden && <span className="text-[9px] text-red-400 uppercase font-mono tracking-wider ml-1">(Hidden)</span>}
+                          <div className="flex items-center gap-2 ml-2 pl-2 border-l border-white/10">
+                            <button
+                              onClick={() => openEditEntity("project_category", c.id || "", c)}
+                              className="text-gray-400 hover:text-white"
+                              title="Edit"
+                            >
+                              <Edit size={10} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteEntity("project_category", c.id || "")}
+                              className="text-red-400 hover:text-red-300"
+                              title="Delete"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {projectCategories.length === 0 && (
+                        <div className="text-[11px] text-gray-500 italic">No categories created yet. Click "Add Category" to start.</div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Visual Registration Form Guide */}

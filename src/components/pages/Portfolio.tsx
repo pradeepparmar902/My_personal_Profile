@@ -11,7 +11,7 @@ interface PortfolioProps {
 }
 
 export default function Portfolio({ setCurrentTab }: PortfolioProps) {
-  const { projects, addEntity, registrationForms = [] } = useProfile();
+  const { projects, projectCategories, registrationForms = [], addEntity } = useProfile();
   const [activeFilter, setActiveFilter] = useState("All");
 
   const [selectedWorkshopForReg, setSelectedWorkshopForReg] = useState<any | null>(null);
@@ -184,7 +184,12 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
 
   const visibleProjects = projects.filter(p => !p.isHidden);
 
-  const filterCategories = ["All", ...Array.from(new Set(visibleProjects.map(p => p.category).filter(Boolean)))];
+  // Determine filter categories from the database (or fallback if empty)
+  const activeProjCats = projectCategories && projectCategories.length > 0 
+    ? projectCategories.filter(c => !c.isHidden).map(c => c.name)
+    : Array.from(new Set(visibleProjects.map(p => p.category).filter(Boolean)));
+
+  const filterCategories = ["All", ...activeProjCats];
 
   const filteredProjects = activeFilter === "All" 
     ? visibleProjects 

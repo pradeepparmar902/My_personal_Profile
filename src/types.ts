@@ -78,6 +78,14 @@ export interface Testimonial {
   isHidden?: boolean;
 }
 
+export interface ProjectCategory {
+  id?: string;
+  name: string;
+  icon?: string;
+  order?: number;
+  isHidden?: boolean;
+}
+
 export interface AchievementCategory {
   id?: string;
   name: string;

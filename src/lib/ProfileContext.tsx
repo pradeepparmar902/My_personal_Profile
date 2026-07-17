@@ -23,7 +23,8 @@ import {
   Experience, 
   Skill, 
   Testimonial, 
-  AchievementCategory, 
+  AchievementCategory,
+  ProjectCategory,
   Achievement, 
   PositionType, 
   Position,
@@ -40,6 +41,7 @@ interface ProfileContextType {
   skills: Skill[];
   testimonials: Testimonial[];
   achievementCategories: AchievementCategory[];
+  projectCategories: ProjectCategory[];
   achievements: Achievement[];
   positionTypes: PositionType[];
   positions: Position[];
@@ -71,6 +73,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [achievementCategories, setAchievementCategories] = useState<AchievementCategory[]>([]);
+  const [projectCategories, setProjectCategories] = useState<ProjectCategory[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [positionTypes, setPositionTypes] = useState<PositionType[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -116,6 +119,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             skillsSnap,
             testimonialsSnap,
             categoriesSnap,
+            projectCategoriesSnap,
             achievementsSnap,
             positionTypesSnap,
             positionsSnap,
@@ -128,6 +132,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             getDocs(collection(db, "skills")),
             getDocs(collection(db, "testimonials")),
             getDocs(collection(db, "achievement_categories")),
+            getDocs(collection(db, "project_categories")),
             getDocs(collection(db, "achievements")),
             getDocs(collection(db, "position_types")),
             getDocs(collection(db, "positions")),
@@ -153,6 +158,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           categoriesSnap.forEach((d) => categoriesList.push({ id: d.id, ...d.data() } as AchievementCategory));
           categoriesList.sort((a, b) => (a.order || 0) - (b.order || 0));
           setAchievementCategories(categoriesList);
+
+          const projCatsList: ProjectCategory[] = [];
+          projectCategoriesSnap.forEach((d) => projCatsList.push({ id: d.id, ...d.data() } as ProjectCategory));
+          projCatsList.sort((a, b) => (a.order || 0) - (b.order || 0));
+          setProjectCategories(projCatsList);
 
           const achievementsList: Achievement[] = [];
           achievementsSnap.forEach((d) => achievementsList.push({ id: d.id, ...d.data() } as Achievement));
@@ -331,6 +341,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         skills,
         testimonials,
         achievementCategories,
+        projectCategories,
         achievements,
         positionTypes,
         positions,
