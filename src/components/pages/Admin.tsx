@@ -3307,7 +3307,10 @@ export default function Admin() {
                       <h3 className="text-lg font-serif font-semibold text-white">
                         Achievement entries
                       </h3>
-                      <button
+                      <div className="flex items-center gap-2">
+  <PurgeCollectionButton colName="achievements" items={achievements} deleteEntity={deleteEntity} showToast={showToast} />
+  <BulkImportButton colName="achievements" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
+  <button
                         onClick={() => {
                           if (achievementCategories.length === 0) {
                             showToast("Please add at least one Tab Category first before adding an achievement card.", "error");
@@ -3320,6 +3323,7 @@ export default function Admin() {
                         <Plus size={14} />
                         Add Achievement Card
                       </button>
+</div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
