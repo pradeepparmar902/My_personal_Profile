@@ -103,11 +103,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           ]);
 
           if (profileDoc.exists()) {
-            setProfile({ id: "default", ...profileDoc.data() } as Profile);
+            setProfile({ ...profileDoc.data(), id: "default" } as Profile);
           }
 
           const projectsList: Project[] = [];
-          projectsSnap.forEach((d) => projectsList.push({ id: d.id, ...d.data() } as Project));
+          projectsSnap.forEach((d) => projectsList.push({ ...d.data(), id: d.id } as Project));
           projectsList.sort((a, b) => (a.order || 0) - (b.order || 0));
           setProjects(projectsList);
 
@@ -144,48 +144,48 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           ]);
 
           const experiencesList: Experience[] = [];
-          experiencesSnap.forEach((d) => experiencesList.push({ id: d.id, ...d.data() } as Experience));
+          experiencesSnap.forEach((d) => experiencesList.push({ ...d.data(), id: d.id } as Experience));
           setExperiences(experiencesList);
 
           const skillsList: Skill[] = [];
-          skillsSnap.forEach((d) => skillsList.push({ id: d.id, ...d.data() } as Skill));
+          skillsSnap.forEach((d) => skillsList.push({ ...d.data(), id: d.id } as Skill));
           setSkills(skillsList);
 
           const testimonialsList: Testimonial[] = [];
-          testimonialsSnap.forEach((d) => testimonialsList.push({ id: d.id, ...d.data() } as Testimonial));
+          testimonialsSnap.forEach((d) => testimonialsList.push({ ...d.data(), id: d.id } as Testimonial));
           setTestimonials(testimonialsList);
 
           const categoriesList: AchievementCategory[] = [];
-          categoriesSnap.forEach((d) => categoriesList.push({ id: d.id, ...d.data() } as AchievementCategory));
+          categoriesSnap.forEach((d) => categoriesList.push({ ...d.data(), id: d.id } as AchievementCategory));
           categoriesList.sort((a, b) => (a.order || 0) - (b.order || 0));
           setAchievementCategories(categoriesList);
 
           const projCatsList: ProjectCategory[] = [];
-          projectCategoriesSnap.forEach((d) => projCatsList.push({ id: d.id, ...d.data() } as ProjectCategory));
+          projectCategoriesSnap.forEach((d) => projCatsList.push({ ...d.data(), id: d.id } as ProjectCategory));
           projCatsList.sort((a, b) => (a.order || 0) - (b.order || 0));
           setProjectCategories(projCatsList);
 
           const achievementsList: Achievement[] = [];
-          achievementsSnap.forEach((d) => achievementsList.push({ id: d.id, ...d.data() } as Achievement));
+          achievementsSnap.forEach((d) => achievementsList.push({ ...d.data(), id: d.id } as Achievement));
           setAchievements(achievementsList);
 
           const positionTypesList: PositionType[] = [];
-          positionTypesSnap.forEach((d) => positionTypesList.push({ id: d.id, ...d.data() } as PositionType));
+          positionTypesSnap.forEach((d) => positionTypesList.push({ ...d.data(), id: d.id } as PositionType));
           setPositionTypes(positionTypesList);
 
           const positionsList: Position[] = [];
-          positionsSnap.forEach((d) => positionsList.push({ id: d.id, ...d.data() } as Position));
+          positionsSnap.forEach((d) => positionsList.push({ ...d.data(), id: d.id } as Position));
           setPositions(positionsList);
 
           if (formsSnap) {
             const formsList: RegistrationFormTemplate[] = [];
-            formsSnap.forEach((d) => formsList.push({ id: d.id, ...d.data() } as RegistrationFormTemplate));
+            formsSnap.forEach((d) => formsList.push({ ...d.data(), id: d.id } as RegistrationFormTemplate));
             setRegistrationForms(formsList);
           }
 
           if (fieldsSnap) {
             let fieldsList: ReusableField[] = [];
-            fieldsSnap.forEach((d) => fieldsList.push({ id: d.id, ...d.data() } as ReusableField));
+            fieldsSnap.forEach((d) => fieldsList.push({ ...d.data(), id: d.id } as ReusableField));
             
             if (fieldsList.length === 0) {
               const defaults = [
@@ -201,21 +201,21 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
               }
               const freshSnap = await getDocs(collection(db, "reusable_fields"));
               fieldsList = [];
-              freshSnap.forEach((d) => fieldsList.push({ id: d.id, ...d.data() } as ReusableField));
+              freshSnap.forEach((d) => fieldsList.push({ ...d.data(), id: d.id } as ReusableField));
             }
             setReusableFields(fieldsList);
           }
 
           if (messagesSnap) {
             const messagesList: ContactMessage[] = [];
-            messagesSnap.forEach((d) => messagesList.push({ id: d.id, ...d.data() } as ContactMessage));
+            messagesSnap.forEach((d) => messagesList.push({ ...d.data(), id: d.id } as ContactMessage));
             messagesList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             setMessages(messagesList);
           }
 
           if (regsSnap) {
             const regsList: WorkshopRegistration[] = [];
-            regsSnap.forEach((d) => regsList.push({ id: d.id, ...d.data() } as WorkshopRegistration));
+            regsSnap.forEach((d) => regsList.push({ ...d.data(), id: d.id } as WorkshopRegistration));
             regsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
             setWorkshopRegistrations(regsList);
           }
