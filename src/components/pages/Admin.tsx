@@ -177,6 +177,41 @@ export default function Admin() {
   const [messagesViewMode, setMessagesViewMode] = useState<"cards" | "excel">("cards");
   const [registrationsViewMode, setRegistrationsViewMode] = useState<"cards" | "excel">("cards");
 
+  const handleExportData = () => {
+    try {
+      const exportData = {
+        profile,
+        projects,
+        experiences,
+        skills,
+        testimonials,
+        achievementCategories,
+        projectCategories,
+        achievements,
+        positionTypes,
+        positions,
+        messages,
+        workshopRegistrations,
+        registrationForms,
+        reusableFields
+      };
+      const jsonString = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Portfolio_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast("Data export generated successfully!", "success");
+    } catch (err) {
+      showToast("Failed to export data.", "error");
+      console.error(err);
+    }
+  };
+
   // Bulletproof CSV Exporter
   const downloadCSV = (
     data: any[],
@@ -646,13 +681,22 @@ export default function Admin() {
           </p>
         </div>
 
-        <button
-          onClick={logoutAdmin}
-          className="px-4 py-2 text-xs font-semibold rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
-        >
-          <LogOut size={12} />
-          Lock Dashboard
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportData}
+            className="px-4 py-2 text-xs font-semibold rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Download size={12} />
+            Export Full Backup (JSON)
+          </button>
+          <button
+            onClick={logoutAdmin}
+            className="px-4 py-2 text-xs font-semibold rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <LogOut size={12} />
+            Lock Dashboard
+          </button>
+        </div>
       </div>
 
       {/* Main CMS Selector Tab Row */}
