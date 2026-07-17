@@ -104,6 +104,36 @@ const DEFAULT_PROFILE = {
 };
 
 
+
+const PurgeCollectionButton = ({ colName, items, deleteEntity, showToast }: { colName: string, items: any[], deleteEntity: any, showToast: any }) => {
+  const [loading, setLoading] = useState(false);
+  const handlePurge = async () => {
+    if (!window.confirm(`Are you ABSOLUTELY sure you want to delete ALL ${items.length} items in ${colName}? This cannot be undone.`)) return;
+    setLoading(true);
+    try {
+      for (const item of items) {
+        if (item.id) await deleteEntity(colName, item.id);
+      }
+      showToast(`Successfully purged ${colName}`, "success");
+    } catch (err: any) {
+      showToast("Failed to purge: " + err.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button onClick={handlePurge} disabled={loading || items.length === 0} className={`px-3 py-1.5 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer hover:bg-red-500/20 transition-all ${(loading || items.length === 0) ? 'opacity-50 pointer-events-none' : ''}`}>
+      {loading ? (
+        <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <Trash2 size={12} />
+      )}
+      Purge All
+    </button>
+  );
+};
+
 const BulkImportButton = ({ colName, addEntity, refreshData, showToast }: { colName: string, addEntity: any, refreshData: any, showToast: any }) => {
   const [loading, setLoading] = useState(false);
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2932,6 +2962,7 @@ export default function Admin() {
                       Programs & Workshops Catalogue
                     </h3>
                     <div className="flex items-center gap-2">
+  <PurgeCollectionButton colName="projects" items={projects} deleteEntity={deleteEntity} showToast={showToast} />
   <BulkImportButton colName="projects" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
   <button
                       onClick={() => openAddEntity("project", { category: projectCategories.length > 0 ? projectCategories[0].name : "Technical" })}
@@ -2956,6 +2987,7 @@ export default function Admin() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+  <PurgeCollectionButton colName="project_categories" items={projectCategories} deleteEntity={deleteEntity} showToast={showToast} />
   <BulkImportButton colName="project_categories" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
   <button
                         onClick={() => openAddEntity("project_category", { order: 0, isHidden: false })}
@@ -3116,6 +3148,7 @@ export default function Admin() {
                       <p className="text-xs text-gray-400 mt-1">Design custom forms with specific data types and attach them to any workshop.</p>
                     </div>
                     <div className="flex items-center gap-2">
+  <PurgeCollectionButton colName="registration_forms" items={registrationForms || []} deleteEntity={deleteEntity} showToast={showToast} />
   <BulkImportButton colName="registration_forms" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
   <button
                       onClick={() => openAddEntity("registration_form", { name: "New Dynamic Form Template", title: "Workshop Entry Invite", buttonText: "Request Invite", successMessage: "Your registration has been securely logged.", fields: [] })}
@@ -3231,6 +3264,7 @@ export default function Admin() {
                         Tab Categories (IT, Excel, Mind Game)
                       </h3>
                       <div className="flex items-center gap-2">
+  <PurgeCollectionButton colName="achievement_categories" items={achievementCategories} deleteEntity={deleteEntity} showToast={showToast} />
   <BulkImportButton colName="achievement_categories" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
   <button
                         onClick={() => openAddEntity("achievement_category", { order: 0, icon: "Laptop" })}
@@ -3347,6 +3381,7 @@ export default function Admin() {
                         Organization Types
                       </h3>
                       <div className="flex items-center gap-2">
+  <PurgeCollectionButton colName="position_types" items={positionTypes} deleteEntity={deleteEntity} showToast={showToast} />
   <BulkImportButton colName="position_types" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
   <button
                         onClick={() => openAddEntity("position_type", { icon: "Shield", isHidden: false })}
@@ -4198,6 +4233,7 @@ export default function Admin() {
                       Career Experience History
                     </h3>
                     <div className="flex items-center gap-2">
+  <PurgeCollectionButton colName="experience" items={experiences} deleteEntity={deleteEntity} showToast={showToast} />
   <BulkImportButton colName="experience" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
   <button
                       onClick={() => openAddEntity("experience", {})}
@@ -4269,6 +4305,7 @@ export default function Admin() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+  <PurgeCollectionButton colName="skills" items={skills} deleteEntity={deleteEntity} showToast={showToast} />
   <BulkImportButton colName="skills" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
   <button
                       onClick={() => openAddEntity("skill", { category: "Technical", percentage: 90 })}
@@ -4477,6 +4514,7 @@ export default function Admin() {
                       Student & Client Endorsements
                     </h3>
                     <div className="flex items-center gap-2">
+  <PurgeCollectionButton colName="testimonials" items={testimonials} deleteEntity={deleteEntity} showToast={showToast} />
   <BulkImportButton colName="testimonials" addEntity={addEntity} refreshData={refreshData} showToast={showToast} />
   <button
                       onClick={() => openAddEntity("testimonial", {})}
