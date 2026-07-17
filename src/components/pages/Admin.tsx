@@ -110,6 +110,7 @@ export default function Admin() {
     skills, 
     testimonials, 
     achievementCategories, 
+    projectCategories = [],
     achievements, 
     positionTypes, 
     positions, 
