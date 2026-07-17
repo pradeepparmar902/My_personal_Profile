@@ -214,6 +214,21 @@ export default function Contact({ setCurrentTab }: ContactProps) {
                   </div>
 
                   <div className="space-y-1.5">
+                    <label htmlFor="mobile" className="block text-[10px] text-gray-400 uppercase tracking-widest font-mono">
+                      Mobile Number
+                    </label>
+                    <input
+                      id="mobile"
+                      type="tel"
+                      name="mobile"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                      placeholder="+91 98199 84437"
+                      className="w-full px-4 py-3 bg-white/[0.03] hover:bg-white/[0.05] focus:bg-black border border-white/10 rounded-xl text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all font-sans"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
                     <label htmlFor="subject" className="block text-[10px] text-gray-400 uppercase tracking-widest font-mono">
                       Subject
                     </label>
