@@ -240,7 +240,7 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
 
   // Determine filter categories from the database (or fallback if empty)
   const activeProjCats = projectCategories && projectCategories.length > 0 
-    ? projectCategories.filter(c => !c.isHidden).map(c => c.name)
+    ? projectCategories.filter(c => !c.isHidden && visibleProjects.some(p => p.category?.toLowerCase() === c.name.toLowerCase())).map(c => c.name)
     : Array.from(new Set(visibleProjects.map(p => p.category).filter(Boolean)));
 
   const filterCategories = ["All", ...activeProjCats];
