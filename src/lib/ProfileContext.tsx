@@ -108,6 +108,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
           const projectsList: Project[] = [];
           projectsSnap.forEach((d) => projectsList.push({ id: d.id, ...d.data() } as Project));
+          projectsList.sort((a, b) => (a.order || 0) - (b.order || 0));
           setProjects(projectsList);
 
           // Critical data loaded! Unblock the UI instantly so deep links open immediately.

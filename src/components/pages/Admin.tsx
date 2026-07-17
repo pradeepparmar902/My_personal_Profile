@@ -447,6 +447,26 @@ export default function Admin() {
     }
   };
 
+  const handleMoveProject = async (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === projects.length - 1) return;
+
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    const current = projects[index];
+    const target = projects[swapIndex];
+
+    const currentOrder = current.order !== undefined ? current.order : index;
+    const targetOrder = target.order !== undefined ? target.order : swapIndex;
+
+    try {
+      await updateEntity("projects", current.id || "", { order: targetOrder });
+      await updateEntity("projects", target.id || "", { order: currentOrder });
+    } catch (err) {
+      console.error("Failed to move project", err);
+      showToast("Failed to reorder.", "error");
+    }
+  };
+
   const handleDeleteEntity = async (type: string, id: string) => {
     if (!window.confirm("Are you absolutely sure you want to delete this item?")) return;
     
@@ -2860,7 +2880,7 @@ export default function Admin() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
-                    {projects.map((project) => (
+                    {projects.map((project, index) => (
                       <div 
                         key={project.id} 
                         className="p-4 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] flex items-center justify-between gap-4"
@@ -2873,6 +2893,22 @@ export default function Admin() {
                           <p className="text-xs text-gray-400 line-clamp-1">{project.description}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => handleMoveProject(index, 'up')}
+                            disabled={index === 0}
+                            className={`p-2 rounded-lg transition-colors ${index === 0 ? "opacity-30 cursor-not-allowed text-gray-500" : "text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 cursor-pointer"}`}
+                            title="Move Up"
+                          >
+                            <ArrowUp size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleMoveProject(index, 'down')}
+                            disabled={index === projects.length - 1}
+                            className={`p-2 rounded-lg transition-colors ${index === projects.length - 1 ? "opacity-30 cursor-not-allowed text-gray-500" : "text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 cursor-pointer"}`}
+                            title="Move Down"
+                          >
+                            <ArrowDown size={14} />
+                          </button>
                           {project.allowRegistration && (
                             <button
                               onClick={() => {

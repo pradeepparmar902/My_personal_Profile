@@ -36,6 +36,7 @@ export interface Project {
   coverImage: string;
   link: string;
   details: string;
+  order?: number;
   isHidden?: boolean;
   allowRegistration?: boolean;
   workshopDate?: string;
