@@ -144,6 +144,7 @@ export default function Admin() {
 
   // CMS view states
   const [activeTab, setActiveTab] = useState("profile");
+  const [draggedProjectIndex, setDraggedProjectIndex] = useState<number | null>(null);
   const [localNavConfig, setLocalNavConfig] = useState<any[]>(
     profile?.navConfig?.length 
       ? [...profile.navConfig] 
@@ -447,20 +448,44 @@ export default function Admin() {
     }
   };
 
+  const handleDropProject = async (targetIndex: number) => {
+    if (draggedProjectIndex === null || draggedProjectIndex === targetIndex) {
+      setDraggedProjectIndex(null);
+      return;
+    }
+
+    const newProjects = [...projects];
+    const [draggedItem] = newProjects.splice(draggedProjectIndex, 1);
+    newProjects.splice(targetIndex, 0, draggedItem);
+
+    setDraggedProjectIndex(null);
+
+    // Normalize order for all projects
+    try {
+      await Promise.all(
+        newProjects.map((p, idx) => updateEntity("projects", p.id || "", { order: idx }))
+      );
+      showToast("Reordered successfully!", "success");
+    } catch (err) {
+      console.error("Failed to reorder projects", err);
+      showToast("Failed to save new order.", "error");
+    }
+  };
+
   const handleMoveProject = async (index: number, direction: 'up' | 'down') => {
     if (direction === 'up' && index === 0) return;
     if (direction === 'down' && index === projects.length - 1) return;
 
-    const swapIndex = direction === 'up' ? index - 1 : index + 1;
-    const current = projects[index];
-    const target = projects[swapIndex];
-
-    const currentOrder = current.order !== undefined ? current.order : index;
-    const targetOrder = target.order !== undefined ? target.order : swapIndex;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const newProjects = [...projects];
+    const [item] = newProjects.splice(index, 1);
+    newProjects.splice(targetIndex, 0, item);
 
     try {
-      await updateEntity("projects", current.id || "", { order: targetOrder });
-      await updateEntity("projects", target.id || "", { order: currentOrder });
+      await Promise.all(
+        newProjects.map((p, idx) => updateEntity("projects", p.id || "", { order: idx }))
+      );
+      showToast("Moved successfully!", "success");
     } catch (err) {
       console.error("Failed to move project", err);
       showToast("Failed to reorder.", "error");
@@ -2883,7 +2908,11 @@ export default function Admin() {
                     {projects.map((project, index) => (
                       <div 
                         key={project.id} 
-                        className="p-4 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] flex items-center justify-between gap-4"
+                        draggable
+                        onDragStart={() => setDraggedProjectIndex(index)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDropProject(index)}
+                        className={`p-4 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.02] flex items-center justify-between gap-4 cursor-grab active:cursor-grabbing transition-transform ${draggedProjectIndex === index ? "opacity-50 scale-[0.98]" : "opacity-100 scale-100"}`}
                       >
                         <div>
                           <span className="text-[9px] font-mono tracking-widest text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded uppercase border border-[#d4af37]/20">
