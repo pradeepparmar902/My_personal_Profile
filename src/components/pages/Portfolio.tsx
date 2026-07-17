@@ -86,6 +86,26 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
     }
   }, [projects]);
 
+  React.useEffect(() => {
+    const nav = document.querySelector('nav');
+    if (selectedWorkshopForReg || selectedWorkshopForContact) {
+      document.body.style.overflow = 'hidden';
+      if (nav) nav.style.opacity = '0';
+      if (nav) nav.style.pointerEvents = 'none';
+    } else {
+      document.body.style.overflow = '';
+      if (nav) nav.style.opacity = '1';
+      if (nav) nav.style.pointerEvents = 'auto';
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+      if (nav) nav.style.opacity = '1';
+      if (nav) nav.style.pointerEvents = 'auto';
+    };
+  }, [selectedWorkshopForReg, selectedWorkshopForContact]);
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactForm.name || !contactForm.email || !contactForm.message) {

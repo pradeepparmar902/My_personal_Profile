@@ -78,7 +78,7 @@ function MainAppContent() {
       <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} />
 
       {/* Main Pages Content Frame with Transitions */}
-      <main className="relative pb-12 z-10">
+      <main className="pb-12">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentTab}
