@@ -244,10 +244,14 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredProjects.map((project, index) => (
-            <ScrollReveal key={project.id || index} delay={index * 0.1}>
-              <TiltCard className="h-full flex flex-col justify-between">
-                <div>
-                  {/* Aspect Cover Image */}
+              <ScrollReveal key={project.id || index} delay={index * 0.1}>
+                <div className="group relative h-full rounded-2xl p-[2px] transition-transform duration-500 hover:-translate-y-2">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400 via-[#d4af37] to-purple-500 opacity-30 group-hover:opacity-100 blur-[4px] group-hover:blur-[8px] transition-all duration-500 animate-pulse" />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400 via-[#d4af37] to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+                  
+                  <TiltCard className="h-full flex flex-col justify-between relative z-10 !bg-neutral-950/90 !border-transparent group-hover:!bg-neutral-900/90">
+                    <div>
+                      {/* Aspect Cover Image */}
                   <div className="relative aspect-video rounded-xl overflow-hidden bg-neutral-900 mb-5">
                     <img
                       src={cleanGoogleDriveUrl(project.coverImage) || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=600&auto=format&fit=crop"}
@@ -336,9 +340,10 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                       </a>
                     )
                   )}
+                  </div>
+                </TiltCard>
                 </div>
-              </TiltCard>
-            </ScrollReveal>
+              </ScrollReveal>
           ))}
         </div>
       )}
