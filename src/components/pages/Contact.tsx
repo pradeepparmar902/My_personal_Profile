@@ -14,6 +14,7 @@ export default function Contact({ setCurrentTab }: ContactProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    mobile: "",
     subject: "",
     message: ""
   });
@@ -41,12 +42,13 @@ export default function Contact({ setCurrentTab }: ContactProps) {
       await addMessage({
         name: formData.name,
         email: formData.email,
+        mobile: formData.mobile,
         subject: formData.subject || "General Inquiry",
         message: formData.message,
         createdAt: new Date().toISOString()
       });
       setSubmitted(true);
-      setFormData({ name: "", email: "", subject: "", message: "" });
+      setFormData({ name: "", email: "", mobile: "", subject: "", message: "" });
     } catch (err: any) {
       setError("Failed to dispatch message. Please check connection and try again.");
       console.error(err);

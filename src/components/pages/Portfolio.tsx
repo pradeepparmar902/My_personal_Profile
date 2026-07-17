@@ -15,7 +15,7 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
   const [activeFilter, setActiveFilter] = useState("All");
 
   const [selectedWorkshopForContact, setSelectedWorkshopForContact] = useState<any | null>(null);
-  const [contactForm, setContactForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [contactForm, setContactForm] = useState({ name: "", email: "", mobile: "", subject: "", message: "" });
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [contactSubmitted, setContactSubmitted] = useState(false);
   const [contactError, setContactError] = useState<string | null>(null);
@@ -120,12 +120,13 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
       await addMessage({
         name: contactForm.name,
         email: contactForm.email,
+        mobile: contactForm.mobile,
         subject: contactForm.subject || `Inquiry about ${selectedWorkshopForContact?.title || 'Workshop'}`,
         message: contactForm.message,
         createdAt: new Date().toISOString()
       });
       setContactSubmitted(true);
-      setContactForm({ name: "", email: "", subject: "", message: "" });
+      setContactForm({ name: "", email: "", mobile: "", subject: "", message: "" });
     } catch (err: any) {
       setContactError(err.message || "Failed to send message. Please try again.");
     } finally {
@@ -687,6 +688,17 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                       value={contactForm.email}
                       onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                       placeholder="e.g. john@example.com"
+                      className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Mobile Number</label>
+                    <input
+                      type="tel"
+                      value={contactForm.mobile}
+                      onChange={(e) => setContactForm({ ...contactForm, mobile: e.target.value })}
+                      placeholder="e.g. +91 98199 84437"
                       className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
                     />
                   </div>

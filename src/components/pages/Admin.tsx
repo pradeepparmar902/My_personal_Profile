@@ -3608,6 +3608,11 @@ export default function Admin() {
                               <a href={`mailto:${msg.email}`} className="text-[#d4af37] text-xs hover:underline mt-1 block">
                                 {msg.email}
                               </a>
+                              {msg.mobile && (
+                                <a href={`tel:${msg.mobile}`} className="text-gray-400 text-xs hover:text-white transition-colors mt-1 block">
+                                  {msg.mobile}
+                                </a>
+                              )}
                             </div>
                             <span className="text-[10px] font-mono text-gray-500">
                               {new Date(msg.createdAt).toLocaleString()}
@@ -3642,7 +3647,7 @@ export default function Admin() {
                             <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-mono uppercase tracking-wider text-gray-400 select-none">
                               <th className="p-3.5 border-r border-white/5 font-bold text-center">#</th>
                               <th className="p-3.5 border-r border-white/5 font-bold">Client / Sender</th>
-                              <th className="p-3.5 border-r border-white/5 font-bold">Email Coordinate</th>
+                              <th className="p-3.5 border-r border-white/5 font-bold">Coordinates</th>
                               <th className="p-3.5 border-r border-white/5 font-bold">Subject Inquiry</th>
                               <th className="p-3.5 border-r border-white/5 font-bold">Detailed Message</th>
                               <th className="p-3.5 border-r border-white/5 font-bold">Date Received</th>
@@ -3659,7 +3664,14 @@ export default function Admin() {
                                   {msg.name}
                                 </td>
                                 <td className="p-3 border-r border-white/5 font-mono text-xs text-[#d4af37]">
-                                  <a href={`mailto:${msg.email}`} className="hover:underline">{msg.email}</a>
+                                  <div className="flex flex-col gap-1">
+                                    <a href={`mailto:${msg.email}`} className="hover:underline">{msg.email}</a>
+                                    {msg.mobile && (
+                                      <a href={`tel:${msg.mobile}`} className="text-gray-400 hover:text-white transition-colors">
+                                        {msg.mobile}
+                                      </a>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className="p-3 border-r border-white/5 font-semibold text-gray-200">
                                   {msg.subject}
