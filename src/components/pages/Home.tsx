@@ -107,7 +107,7 @@ export default function Home({ setCurrentTab }: HomeProps) {
   const visibleTestimonials = testimonials.filter(t => !t.isHidden);
   const visibleAchievements = achievements.filter(a => !a.isHidden);
   const visiblePositions = positions.filter(p => !p.isHidden);
-  const visibleCategories = achievementCategories.filter(c => !c.isHidden);
+  const visibleCategories = achievementCategories.filter(c => !c.isHidden && visibleAchievements.some(a => a.categoryId === c.id));
   const visibleSkills = (skills || []).filter(s => !s.isHidden);
 
   // Sort skill categories based on profile?.skillCategoryOrder
