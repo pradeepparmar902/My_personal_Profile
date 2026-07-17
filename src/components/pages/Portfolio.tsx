@@ -238,10 +238,16 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
 
   const visibleProjects = projects.filter(p => !p.isHidden);
 
-  // Determine filter categories from the database (or fallback if empty)
-  const activeProjCats = projectCategories && projectCategories.length > 0 
-    ? projectCategories.filter(c => !c.isHidden && visibleProjects.some(p => p.category?.toLowerCase() === c.name.toLowerCase())).map(c => c.name)
-    : Array.from(new Set(visibleProjects.map(p => p.category).filter(Boolean)));
+  // Determine filter categories directly from active projects so mismatches don't hide them
+  const projectCatsFromProjects = Array.from(new Set(visibleProjects.map(p => p.category).filter(Boolean)));
+  const activeProjCats = projectCatsFromProjects.sort((a, b) => {
+    const idxA = (projectCategories || []).findIndex(c => c.name.toLowerCase() === a?.toLowerCase());
+    const idxB = (projectCategories || []).findIndex(c => c.name.toLowerCase() === b?.toLowerCase());
+    if (idxA === -1 && idxB !== -1) return 1;
+    if (idxB === -1 && idxA !== -1) return -1;
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    return (a || "").localeCompare(b || "");
+  }) as string[];
 
   const filterCategories = ["All", ...activeProjCats];
 
