@@ -184,7 +184,7 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
 
   const visibleProjects = projects.filter(p => !p.isHidden);
 
-  const filterCategories = ["All", "Technical", "Mindset", "Holistic"];
+  const filterCategories = ["All", ...Array.from(new Set(visibleProjects.map(p => p.category).filter(Boolean)))];
 
   const filteredProjects = activeFilter === "All" 
     ? visibleProjects 

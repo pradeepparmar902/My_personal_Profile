@@ -685,15 +685,26 @@ export default function Admin() {
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Category</label>
-                      <select
+                      <input
+                        type="text"
                         value={entityForm.category || "Technical"}
                         onChange={(e) => setEntityForm({ ...entityForm, category: e.target.value })}
+                        placeholder="e.g. Technical, Mindset, Holistic"
                         className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
-                      >
-                        <option value="Technical">Technical</option>
-                        <option value="Mindset">Mindset</option>
-                        <option value="Holistic">Holistic</option>
-                      </select>
+                        required
+                      />
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {Array.from(new Set(projects.map(p => p.category || "Technical"))).filter(Boolean).map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setEntityForm({ ...entityForm, category: cat })}
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors border ${entityForm.category === cat ? "bg-[#d4af37]/20 border-[#d4af37]/50 text-[#d4af37]" : "bg-white/5 border-white/10 text-gray-400 hover:text-white"}`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-1">
