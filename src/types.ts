@@ -188,3 +188,18 @@ export interface WorkshopRegistration {
   answers?: { [key: string]: any }; // Support legacy or dynamic custom answers
   createdAt: string;
 }
+
+export interface ResourceItem {
+  id?: string;
+  type: 'product' | 'affiliate' | 'reference';
+  title: string;
+  description: string;
+  imageUrl?: string;
+  link: string;
+  price?: string;
+  platform?: string;
+  personalNote?: string;
+  isHidden?: boolean;
+  order?: number;
+}
+

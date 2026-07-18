@@ -12,6 +12,7 @@ import About from "./components/pages/About";
 import Portfolio from "./components/pages/Portfolio";
 import Contact from "./components/pages/Contact";
 import Admin from "./components/pages/Admin";
+import Store from "./components/pages/Store";
 import { motion, AnimatePresence } from "motion/react";
 import { lazy, Suspense } from "react";
 
@@ -73,6 +74,8 @@ function MainAppContent() {
         return <About setCurrentTab={setCurrentTab} />;
       case "portfolio":
         return <Portfolio setCurrentTab={setCurrentTab} />;
+      case "store":
+        return <Store setCurrentTab={setCurrentTab} />;
       case "contact":
         return <Contact setCurrentTab={setCurrentTab} />;
       case "admin":

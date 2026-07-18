@@ -15,6 +15,7 @@ export default function Navbar({ currentTab, setCurrentTab }: NavbarProps) {
     { id: "home", label: "Home", isHidden: false },
     { id: "about", label: "About", isHidden: false },
     { id: "portfolio", label: "Workshops", isHidden: false },
+    { id: "store", label: "Store", isHidden: false },
     { id: "contact", label: "Contact", isHidden: false },
   ];
 

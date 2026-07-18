@@ -1,0 +1,34 @@
+That is an excellent question! Standard shared hosting providers like Hostinger are built primarily for WordPress, PHP, and traditional static websites. Because modern React/AI apps are built differently, it can cause friction if the AI isn't instructed correctly from the start.
+
+Here is a master list of **Do’s and Don'ts** that you can copy and paste as a "System Prompt" whenever you ask an AI to build a new app for you. This will ensure your next app works flawlessly on Hostinger with zero deployment headaches.
+
+### 📝 The "Hostinger-Friendly" AI Prompt Guide
+
+When asking AI to build a new web app, include these instructions:
+
+#### ✅ THE DO's (What to explicitly ask for)
+1. **"Build it as a Vite Single Page Application (SPA)."**
+   Hostinger handles static files (HTML, CSS, JS) perfectly. Vite compiles your React app into a static `dist` folder that you can just drag and drop into Hostinger’s `public_html` folder.
+2. **"Use Client-Side State Routing instead of URL Routing."**
+   *Why this matters:* If your app uses URLs like `yourdomain.com/about`, and a user refreshes the page, Hostinger’s server will look for a folder named "about" and throw a **404 Not Found** error. By using state-based tabs (like we did in your app), everything stays on `yourdomain.com/` and the components just swap out instantly.
+3. **"Set the Vite base path to `'./'` in `vite.config.ts`."**
+   *Why this matters:* This ensures all your images and scripts load correctly relative to where they are placed in Hostinger's file manager, preventing broken links and missing images.
+4. **"Include a `.htaccess` file for SPA routing fallback."**
+   If you *must* have actual URLs (like `/admin`), tell the AI: *"Generate an Apache `.htaccess` file that redirects all traffic to `index.html` so my React router works on shared hosting."*
+5. **"Use Firebase or Supabase for the database."**
+   Hostinger shared hosting does not run Node.js backend servers easily. By using a "Serverless" database like Firebase, your front-end code talks directly to the database, meaning you don't need to host a separate backend server!
+
+#### ❌ THE DON'Ts (What to avoid)
+1. **Don't let the AI use Next.js with Server-Side Rendering (SSR).**
+   Next.js is incredibly popular in AI right now, but it requires a Node.js server to run properly. Hostinger's standard shared hosting does not support this well (you would need to upgrade to a VPS). Always enforce **Vite + React** for shared hosting.
+2. **Don't hardcode sensitive API keys if they need to be kept secret.**
+   Because a React SPA is downloaded entirely to the user's browser, any passwords or master keys you write in the code can technically be seen by a clever hacker. (This is why we moved your Admin login to true Firebase Authentication!).
+3. **Don't use identical filenames when updating images/assets.**
+   Hostinger uses extremely aggressive caching (LiteSpeed Cache / CDN). If you replace `logo.png` with a new `logo.png`, Hostinger will keep showing the old one for days. Always tell the AI to rename updated assets (e.g., `logo-v2.png`) to instantly break the cache.
+
+---
+
+### 💡 Copy & Paste Prompt Snippet for Your Next App:
+If you are starting a new project, just paste this at the bottom of your prompt:
+
+> *"Technical Requirements: Build this as a React SPA using Vite. Do NOT use Next.js SSR, as this will be deployed to standard Hostinger shared Apache web hosting. Ensure the vite base path is relative (`'./'`). For navigation, use a single-page state-driven approach (tab switching) to prevent 404 errors on page refresh, or provide a `.htaccess` rewrite rule for index.html. Use Firebase for all backend/database needs so no separate Node.js server is required."*

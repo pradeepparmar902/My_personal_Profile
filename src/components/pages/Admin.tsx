@@ -4,6 +4,7 @@ import { forceSeedDatabase } from "../../lib/seed";
 import { auth, signInWithEmailAndPassword } from "../../lib/firebase";
 import { cleanGoogleDriveUrl } from "../../lib/imageUtils";
 import ImageUploader from "../ui/ImageUploader";
+import StoreAdmin from "./StoreAdmin";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   User, 
@@ -52,7 +53,8 @@ import {
   Download,
   List,
   Send,
-  Upload
+  Upload,
+  ShoppingCart
 } from "lucide-react";
 
 // Icon mapper for skills
@@ -243,6 +245,7 @@ export default function Admin() {
               { id: "home", label: "Home", isHidden: false },
               { id: "about", label: "About", isHidden: false },
               { id: "portfolio", label: "Workshops", isHidden: false },
+              { id: "store", label: "Store", isHidden: false },
               { id: "contact", label: "Contact", isHidden: false },
             ]
       );
@@ -832,6 +835,7 @@ export default function Admin() {
             { id: "about", label: "About Page", icon: Info },
             { id: "workshops", label: "Workshops Management", icon: BookOpen },
             { id: "forms", label: "Registration Forms", icon: FileSpreadsheet },
+            { id: "store", label: "Store & Resources", icon: ShoppingCart },
             { id: "experiences", label: "Career History", icon: Briefcase },
             { id: "skills", label: "Capabilities", icon: Award },
             { id: "testimonials", label: "Student Reviews", icon: MessageSquare },
@@ -4573,6 +4577,8 @@ export default function Admin() {
                 </div>
               )}
 
+              {activeTab === "store" && <StoreAdmin />}
+              
               {/* TAB 8: TESTIMONIALS CRUD */}
               {activeTab === "testimonials" && (
                 <div className="space-y-6">
@@ -4895,3 +4901,4 @@ export default function Admin() {
     </div>
   );
 }
+

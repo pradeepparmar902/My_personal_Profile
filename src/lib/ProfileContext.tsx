@@ -31,7 +31,8 @@ import {
   ContactMessage,
   WorkshopRegistration,
   RegistrationFormTemplate,
-  ReusableField
+  ReusableField,
+  ResourceItem
 } from "../types";
 
 interface ProfileContextType {
@@ -49,6 +50,10 @@ interface ProfileContextType {
   workshopRegistrations: WorkshopRegistration[];
   registrationForms: RegistrationFormTemplate[];
   reusableFields: ReusableField[];
+  resources: ResourceItem[];
+  addResource: (item: ResourceItem) => Promise<void>;
+  updateResource: (id: string, item: Partial<ResourceItem>) => Promise<void>;
+  deleteResource: (id: string) => Promise<void>;
   loading: boolean;
   isAdmin: boolean;
   adminUser: any | null;
@@ -81,6 +86,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [workshopRegistrations, setWorkshopRegistrations] = useState<WorkshopRegistration[]>([]);
   const [registrationForms, setRegistrationForms] = useState<RegistrationFormTemplate[]>([]);
   const [reusableFields, setReusableFields] = useState<ReusableField[]>([]);
+  const [resources, setResources] = useState<ResourceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminUser, setAdminUser] = useState<any | null>(null);
@@ -126,6 +132,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             positionsSnap,
             formsSnap,
             fieldsSnap,
+            resourcesSnap,
             messagesSnap,
             regsSnap
           ] = await Promise.all([
@@ -139,6 +146,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             getDocs(collection(db, "positions")),
             getDocs(collection(db, "registration_forms")).catch(err => { console.error(err); return null; }),
             getDocs(collection(db, "reusable_fields")).catch(err => { console.error(err); return null; }),
+            getDocs(collection(db, "resources")).catch(err => { console.error(err); return null; }),
             (isAdmin || auth.currentUser) ? getDocs(collection(db, "messages")).catch(err => { console.error(err); return null; }) : Promise.resolve(null),
             (isAdmin || auth.currentUser) ? getDocs(collection(db, "workshop_registrations")).catch(err => { console.error(err); return null; }) : Promise.resolve(null)
           ]);
@@ -206,6 +214,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             setReusableFields(fieldsList);
           }
 
+          if (resourcesSnap) {
+            const resourcesList: ResourceItem[] = [];
+            resourcesSnap.forEach((d) => resourcesList.push({ ...d.data(), id: d.id } as ResourceItem));
+            setResources(resourcesList);
+          }
+
           if (messagesSnap) {
             const messagesList: ContactMessage[] = [];
             messagesSnap.forEach((d) => messagesList.push({ ...d.data(), id: d.id } as ContactMessage));
@@ -259,6 +273,36 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       setProfile({ id: "default", ...profileData });
     } catch (error) {
       console.error("Error updating profile:", error);
+      throw error;
+    }
+  };
+
+  const addResource = async (item: ResourceItem) => {
+    try {
+      const docRef = await addDoc(collection(db, "resources"), item);
+      setResources(prev => [...prev, { ...item, id: docRef.id }]);
+    } catch (error) {
+      console.error("Error adding resource:", error);
+      throw error;
+    }
+  };
+
+  const updateResource = async (id: string, item: Partial<ResourceItem>) => {
+    try {
+      await updateDoc(doc(db, "resources", id), item);
+      setResources(prev => prev.map(r => r.id === id ? { ...r, ...item } : r));
+    } catch (error) {
+      console.error("Error updating resource:", error);
+      throw error;
+    }
+  };
+
+  const deleteResource = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "resources", id));
+      setResources(prev => prev.filter(r => r.id !== id));
+    } catch (error) {
+      console.error("Error deleting resource:", error);
       throw error;
     }
   };
@@ -350,6 +394,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         workshopRegistrations,
         registrationForms,
         reusableFields,
+        resources,
+        addResource,
+        updateResource,
+        deleteResource,
         loading,
         isAdmin,
         adminUser,
