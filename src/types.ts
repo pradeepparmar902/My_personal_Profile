@@ -15,6 +15,7 @@ export interface Profile {
   phone: string;
   location: string;
   avatarUrl: string;
+  logoUrl?: string;
   linkedin: string;
   youtube: string;
   instagram: string;

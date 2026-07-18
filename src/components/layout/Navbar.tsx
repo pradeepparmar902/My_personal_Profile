@@ -37,7 +37,11 @@ export default function Navbar({ currentTab, setCurrentTab }: NavbarProps) {
           className="flex items-center gap-2 group cursor-pointer text-left focus:outline-none"
         >
           <div className="relative flex items-center justify-center w-10 h-10 rounded-full border border-[#d4af37]/40 bg-gradient-to-br from-[#d4af37]/20 to-[#8a6d1c]/20 overflow-hidden shadow-[0_0_15px_rgba(212,175,55,0.2)] group-hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all">
-            <span className="font-serif font-semibold text-lg text-[#d4af37]">PP</span>
+            {profile?.logoUrl ? (
+              <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-serif font-semibold text-lg text-[#d4af37]">PP</span>
+            )}
             <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           <div>
