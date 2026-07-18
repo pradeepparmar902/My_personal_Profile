@@ -708,7 +708,7 @@ export default function Admin() {
   };
 
   // Auth screen layout
-  if (false) {
+  if (!isAdmin) {
     return (
       <div className="pt-32 pb-16 flex items-center justify-center px-4">
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-8 shadow-2xl">
