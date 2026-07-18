@@ -67,7 +67,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
                         rel="noopener noreferrer"
                         className="px-6 py-2.5 bg-[#d4af37] hover:bg-[#c4a137] text-black font-semibold rounded-full transition-colors flex items-center gap-2"
                       >
-                        Buy Now
+                        {product.price ? "Buy Now" : "I am interested book now"}
                       </a>
                     </div>
                   </div>
