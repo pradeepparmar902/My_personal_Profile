@@ -26,7 +26,24 @@ function MainAppContent() {
   const [currentTab, setCurrentTab] = useState<string>(() => {
     return isDeepLinked ? "portfolio" : "home";
   });
-  const { loading } = useProfile();
+  const { loading, profile } = useProfile();
+
+  React.useEffect(() => {
+    if (profile?.seoDescription) {
+      const ogDesc = document.querySelector('meta[property="og:description"]');
+      if (ogDesc) ogDesc.setAttribute('content', profile.seoDescription);
+      
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute('content', profile.seoDescription);
+      } else {
+        const newMetaDesc = document.createElement('meta');
+        newMetaDesc.name = 'description';
+        newMetaDesc.content = profile.seoDescription;
+        document.head.appendChild(newMetaDesc);
+      }
+    }
+  }, [profile?.seoDescription]);
 
   // Initial loader layout
   if (loading) {

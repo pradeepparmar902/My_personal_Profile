@@ -27,6 +27,7 @@ export interface Profile {
   skillCategoryOrder?: string[];
   coachingHours?: string;
   navConfig?: NavItemConfig[];
+  seoDescription?: string;
 }
 
 export interface Project {
