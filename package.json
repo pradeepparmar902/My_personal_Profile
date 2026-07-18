@@ -6,11 +6,11 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "start": "node app.js",
-    "build": "vite build && cp -r dist/* ../../../ || true",
+    "build": "vite build && node deploy-local.js",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "preview": "vite preview",
-    "clean": "rm -rf dist app.js",
+    "clean": "rm -rf dist app.js deploy-local.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
