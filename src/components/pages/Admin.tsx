@@ -2731,6 +2731,21 @@ export default function Admin() {
                       />
                     </div>
 
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Schedule Consultation Button Link (Featured Workshop)</label>
+                      <select
+                        value={profileForm.featuredWorkshopId || ""}
+                        onChange={(e) => setProfileForm({ ...profileForm, featuredWorkshopId: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none"
+                      >
+                        <option value="">Default (Scroll to Contact section)</option>
+                        {projects.filter(p => p.isActive).map(p => (
+                          <option key={p.id} value={p.id}>{p.title}</option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-gray-500 font-mono mt-1">If selected, the "Schedule Consultation" button on the Home Page will open this workshop's registration form directly to capture leads instantly.</p>
+                    </div>
+
                     {/* Dynamic Home Statistics Counters Array Form */}
                     <div className="border-t border-white/5 pt-6 space-y-4">
                       <h4 className="text-xs font-semibold text-[#d4af37] font-mono uppercase tracking-widest">

@@ -102,6 +102,18 @@ export default function Home({ setCurrentTab }: HomeProps) {
     skills
   } = useProfile();
 
+  const handleScheduleConsultation = () => {
+    if (profile?.featuredWorkshopId) {
+      window.history.pushState({}, "", "?workshop=" + profile.featuredWorkshopId);
+      setCurrentTab("portfolio"); // Navigate to Workshops page
+      // Force a scroll to top so the modal is visible
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      setCurrentTab("contact");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   // Filter hidden entities for public view
   const visibleProjects = projects.filter(p => !p.isHidden);
   const visibleTestimonials = testimonials.filter(t => !t.isHidden);
@@ -353,7 +365,7 @@ export default function Home({ setCurrentTab }: HomeProps) {
                   <ArrowRight size={18} />
                 </button>
                 <button
-                  onClick={() => setCurrentTab("contact")}
+                  onClick={handleScheduleConsultation}
                   className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-medium tracking-wide rounded-full border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   Schedule Consultation
@@ -387,7 +399,7 @@ export default function Home({ setCurrentTab }: HomeProps) {
 
                 {/* Floating Badge */}
                 <button 
-                  onClick={() => setCurrentTab("contact")}
+                  onClick={handleScheduleConsultation}
                   className="absolute -bottom-2 -right-2 bg-gradient-to-r from-neutral-900 to-black border border-[#d4af37]/30 px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xl hover:scale-105 hover:border-[#d4af37]/60 transition-all cursor-pointer group/btn"
                 >
                   <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse group-hover/btn:bg-green-400" />
@@ -1607,7 +1619,7 @@ export default function Home({ setCurrentTab }: HomeProps) {
           {/* Card 3: Contact form */}
           <ScrollReveal delay={0.3}>
             <div 
-              onClick={() => setCurrentTab("contact")}
+              onClick={handleScheduleConsultation}
               className="group relative rounded-2xl border border-white/5 bg-white/[0.01] hover:bg-[#d4af37]/[0.02] hover:border-[#d4af37]/30 p-6 md:p-8 flex flex-col justify-between h-full transition-all duration-300 cursor-pointer shadow-lg overflow-hidden"
             >
               <div className="absolute -inset-2 bg-gradient-to-br from-[#d4af37]/0 via-[#d4af37]/0 to-[#d4af37]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />

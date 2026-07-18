@@ -21,6 +21,7 @@ export interface Profile {
   instagram: string;
   stats: { label: string; value: string }[];
   badge?: string;
+  featuredWorkshopId?: string;
   aboutSubtitle?: string;
   aboutAvatarUrl?: string;
   highlights?: { title: string; description: string }[];
