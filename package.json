@@ -2,15 +2,14 @@
   "name": "react-example",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "start": "node app.js",
-    "build": "vite build && node deploy-local.js",
+    "build": "vite build",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "preview": "vite preview",
-    "clean": "rm -rf dist app.js deploy-local.js",
+    "clean": "rm -rf dist app.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
