@@ -200,6 +200,6 @@ export interface ResourceItem {
   platform?: string;
   personalNote?: string;
   isHidden?: boolean;
+  allowRegistration?: boolean;
   order?: number;
 }
-

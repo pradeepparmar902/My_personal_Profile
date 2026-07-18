@@ -18,7 +18,8 @@ export default function StoreAdmin() {
     price: '',
     platform: '',
     personalNote: '',
-    isHidden: false
+    isHidden: false,
+    allowRegistration: false
   });
 
   const handleEdit = (item: ResourceItem) => {
@@ -37,7 +38,8 @@ export default function StoreAdmin() {
       price: '',
       platform: '',
       personalNote: '',
-      isHidden: false
+      isHidden: false,
+      allowRegistration: false
     });
   };
 
@@ -111,10 +113,11 @@ export default function StoreAdmin() {
           <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">
             {formData.type === 'product' ? 'Payment / Checkout Link (e.g. Razorpay)' : 
              formData.type === 'affiliate' ? 'Affiliate Link' : 'Website URL'}
+             {formData.allowRegistration && " (Optional if Registration is enabled)"}
           </label>
           <input
             type="url"
-            required
+            required={!formData.allowRegistration}
             value={formData.link || ""}
             onChange={(e) => setFormData({ ...formData, link: e.target.value })}
             className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white"
@@ -156,15 +159,32 @@ export default function StoreAdmin() {
           </>
         )}
 
-        <div className="flex items-center gap-2 pt-2">
-          <input
-            type="checkbox"
-            checked={formData.isHidden || false}
-            onChange={(e) => setFormData({ ...formData, isHidden: e.target.checked })}
-            className="w-4 h-4 accent-[#d4af37]"
-            id="hideResource"
-          />
-          <label htmlFor="hideResource" className="text-sm text-gray-300">Hide from public view</label>
+        <div className="flex flex-col gap-3 pt-2">
+          {formData.type === 'product' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.allowRegistration || false}
+                onChange={(e) => setFormData({ ...formData, allowRegistration: e.target.checked })}
+                className="w-4 h-4 accent-[#d4af37]"
+                id="allowRegistration"
+              />
+              <label htmlFor="allowRegistration" className="text-sm text-gray-300">
+                Enable Built-in Registration/Inquiry Form (Instead of immediate external checkout)
+              </label>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formData.isHidden || false}
+              onChange={(e) => setFormData({ ...formData, isHidden: e.target.checked })}
+              className="w-4 h-4 accent-[#d4af37]"
+              id="hideResource"
+            />
+            <label htmlFor="hideResource" className="text-sm text-gray-300">Hide from public view</label>
+          </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
