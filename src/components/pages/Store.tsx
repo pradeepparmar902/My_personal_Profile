@@ -34,12 +34,19 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
         name: contactForm.name,
         email: contactForm.email,
         mobile: contactForm.mobile,
-        subject: `Product Inquiry: ${selectedProductForContact?.title}`,
+        subject: `Product Inquiry/Lead: ${selectedProductForContact?.title}`,
         message: contactForm.message,
         createdAt: new Date().toISOString()
       });
       setContactSubmitted(true);
       setContactForm({ name: "", email: "", mobile: "", message: "" });
+      
+      // If there is a payment or external link, redirect them to it
+      if (selectedProductForContact?.link) {
+        setTimeout(() => {
+          window.location.href = selectedProductForContact.link!;
+        }, 1500);
+      }
     } catch (err) {
       console.error("Failed to submit inquiry:", err);
       setContactError("Failed to send message. Please try again or contact me directly.");
@@ -105,23 +112,12 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
                     
                     <div className="flex items-center justify-between pt-6 border-t border-white/5 mt-auto">
                       {product.price && <span className="text-lg font-bold text-white">{product.price}</span>}
-                      {product.allowRegistration ? (
-                        <button
-                          onClick={() => setSelectedProductForContact(product)}
-                          className="px-6 py-2.5 bg-[#d4af37] hover:bg-[#c4a137] text-black font-semibold rounded-full transition-colors flex items-center gap-2 cursor-pointer"
-                        >
-                          {product.price ? "Buy Now" : "I am interested book now"}
-                        </button>
-                      ) : (
-                        <a 
-                          href={product.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-6 py-2.5 bg-[#d4af37] hover:bg-[#c4a137] text-black font-semibold rounded-full transition-colors flex items-center gap-2"
-                        >
-                          {product.price ? "Buy Now" : "I am interested book now"}
-                        </a>
-                      )}
+                      <button
+                        onClick={() => setSelectedProductForContact(product)}
+                        className="px-6 py-2.5 bg-[#d4af37] hover:bg-[#c4a137] text-black font-semibold rounded-full transition-colors flex items-center gap-2 cursor-pointer"
+                      >
+                        {product.price ? "Buy Now" : "I am interested book now"}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -257,16 +253,22 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
                     <div className="w-16 h-16 bg-[#d4af37]/10 rounded-full flex items-center justify-center mx-auto mb-6">
                       <Star className="text-[#d4af37]" size={32} />
                     </div>
-                    <h3 className="text-2xl font-serif font-bold text-white">Message Sent!</h3>
+                    <h3 className="text-2xl font-serif font-bold text-white">
+                      {selectedProductForContact?.link ? "Registration Successful!" : "Message Sent!"}
+                    </h3>
                     <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto">
-                      Thank you for your interest in "{selectedProductForContact.title}". I'll get back to you shortly.
+                      {selectedProductForContact?.link 
+                        ? "Redirecting you to the next step..." 
+                        : `Thank you for your interest in "${selectedProductForContact.title}". I'll get back to you shortly.`}
                     </p>
-                    <button
-                      onClick={closeContactModal}
-                      className="mt-6 px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors"
-                    >
-                      Close Window
-                    </button>
+                    {!selectedProductForContact?.link && (
+                      <button
+                        onClick={closeContactModal}
+                        className="mt-6 px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors"
+                      >
+                        Close Window
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <form onSubmit={handleContactSubmit} className="space-y-4">
