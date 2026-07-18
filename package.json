@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "start": "node server.js",
-    "build": "vite build && cp -r dist/* ../../../ && cp .htaccess ../../../ || true",
+    "start": "node app.js",
+    "build": "vite build && cp -r dist/* ../../../ || true",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
+    "clean": "rm -rf dist app.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
