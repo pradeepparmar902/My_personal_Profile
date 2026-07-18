@@ -31,6 +31,25 @@ const server = http.createServer((req, res) => {
     path.join(__dirname, '.builds', 'source', 'repository', 'dist')
   ];
 
+  if (urlPath === '/debug') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    try {
+      const rootFiles = fs.readdirSync(__dirname);
+      const distPath = path.join(__dirname, 'dist');
+      let distFiles = [];
+      let assetsFiles = [];
+      if (fs.existsSync(distPath)) {
+        distFiles = fs.readdirSync(distPath);
+        const assetsPath = path.join(distPath, 'assets');
+        if (fs.existsSync(assetsPath)) assetsFiles = fs.readdirSync(assetsPath);
+      }
+      res.end(JSON.stringify({ __dirname, rootFiles, distFiles, assetsFiles }, null, 2));
+    } catch (e) {
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
   let filePath = null;
   // Look for the exact file
   for (const distPath of possibleDistPaths) {
@@ -43,6 +62,13 @@ const server = http.createServer((req, res) => {
 
   // If not found, fallback to index.html for React Router
   if (!filePath) {
+    // DO NOT fallback for static assets like .js, .css, .png
+    if (path.extname(urlPath).length > 0) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found Asset: ' + urlPath);
+      return;
+    }
+
     for (const distPath of possibleDistPaths) {
       const checkPath = path.join(distPath, 'index.html');
       if (fs.existsSync(checkPath) && fs.statSync(checkPath).isFile()) {
@@ -54,7 +80,7 @@ const server = http.createServer((req, res) => {
 
   if (!filePath) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('404 Not Found - dist/index.html is missing. Deployment may not have copied files.');
+    res.end('404 Not Found - dist/index.html is missing.');
     return;
   }
 
