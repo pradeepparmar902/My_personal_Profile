@@ -100,8 +100,9 @@ export default function StoreAdmin() {
           <div>
             <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Image URL</label>
             <ImageUploader 
-              currentImage={formData.imageUrl}
-              onImageUpload={(url) => setFormData({ ...formData, imageUrl: url })}
+              currentUrl={formData.imageUrl}
+              onUploadComplete={(url) => setFormData({ ...formData, imageUrl: url })}
+              pathPrefix="store_resources"
             />
           </div>
         )}
