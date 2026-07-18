@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useProfile } from "../../lib/ProfileContext";
 import { forceSeedDatabase } from "../../lib/seed";
+import { auth, signInWithEmailAndPassword } from "../../lib/firebase";
 import { cleanGoogleDriveUrl } from "../../lib/imageUtils";
 import ImageUploader from "../ui/ImageUploader";
 import { motion, AnimatePresence } from "motion/react";
@@ -198,11 +199,16 @@ export default function Admin() {
     deleteEntity, 
     setAdminStatus, 
     logoutAdmin,
-      refreshData 
+    refreshData 
     } = useProfile();
 
   // Toast state for iframe-safe feedback
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ message, type });
@@ -212,9 +218,7 @@ export default function Admin() {
     }, 4000);
   };
 
-  // Authentication states
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
+  // Authentication states handled earlier
 
   // CMS view states
   const [activeTab, setActiveTab] = useState("profile");
@@ -418,14 +422,30 @@ export default function Admin() {
     }
   }, [profile]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError("");
+    setIsLoggingIn(true);
+    
     // Master password bypass as requested in chat coordinates (extremely convenient for AI Studio)
     if (password === "pradeep123" || password === "admin123") {
       setAdminStatus(true);
-      setAuthError("");
-    } else {
-      setAuthError("Incorrect administrator password. Hint: try 'pradeep123'");
+      setIsLoggingIn(false);
+      return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // setAdminStatus(true) is handled automatically by the auth state listener in ProfileContext
+    } catch (err: any) {
+      console.error("Login error:", err);
+      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        setAuthError("Invalid email or password.");
+      } else {
+        setAuthError(err.message || "An error occurred during login.");
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -710,15 +730,29 @@ export default function Admin() {
             )}
 
             <div className="space-y-1.5">
+              <label htmlFor="authEmail" className="block text-[10px] text-gray-400 uppercase tracking-widest font-mono">
+                Administrator Email
+              </label>
+              <input
+                id="authEmail"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@example.com"
+                className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm focus:border-[#d4af37] outline-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
               <label htmlFor="authPass" className="block text-[10px] text-gray-400 uppercase tracking-widest font-mono">
-                Master Security Key
+                Password
               </label>
               <input
                 id="authPass"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Hint: pradeep123"
+                placeholder="Enter your password"
                 className="w-full px-4 py-3 bg-white/[0.03] border border-white/10 rounded-xl text-white text-sm focus:border-[#d4af37] outline-none"
                 required
               />
