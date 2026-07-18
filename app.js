@@ -26,6 +26,7 @@ const server = http.createServer((req, res) => {
   // Search for the 'dist' folder in multiple locations
   // Depending on Hostinger's environment, app.js could be in public_html or inside the repository
   const possibleDistPaths = [
+    __dirname, // If files were copied directly next to app.js
     path.join(__dirname, 'dist'),
     path.join(__dirname, '.builds', 'source', 'repository', 'dist')
   ];
