@@ -272,17 +272,18 @@ export default function Home({ setCurrentTab }: HomeProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Text Column */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left flex flex-col items-center lg:items-start">
-            {profile?.logoUrl && (
-              <ScrollReveal direction="down" delay={0.05}>
-                <div className="mb-4">
-                  <img 
-                    src={profile.logoUrl} 
-                    alt="Site Logo" 
-                    className="h-32 md:h-40 object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)]"
-                  />
-                </div>
-              </ScrollReveal>
-            )}
+            <ScrollReveal direction="down" delay={0.05}>
+              <div className="mb-4">
+                <img 
+                  src={profile?.logoUrl || "/logo.png"} 
+                  alt="Site Logo" 
+                  className="h-32 md:h-40 object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)]"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            </ScrollReveal>
             
             <ScrollReveal direction="down" delay={0.1}>
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d4af37]/10 border border-[#d4af37]/30 rounded-full">

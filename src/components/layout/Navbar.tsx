@@ -40,7 +40,20 @@ export default function Navbar({ currentTab, setCurrentTab }: NavbarProps) {
             {profile?.logoUrl ? (
               <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-cover" />
             ) : (
-              <span className="font-serif font-semibold text-lg text-[#d4af37]">PP</span>
+              <>
+                <img 
+                  src="/logo.png" 
+                  alt="Logo" 
+                  className="w-full h-full object-cover" 
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextElementSibling) {
+                      e.currentTarget.nextElementSibling.classList.remove('hidden');
+                    }
+                  }} 
+                />
+                <span className="hidden font-serif font-semibold text-lg text-[#d4af37]">PP</span>
+              </>
             )}
             <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>

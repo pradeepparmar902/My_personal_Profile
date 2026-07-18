@@ -2875,20 +2875,21 @@ export default function Admin() {
                         onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
                         className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
                         rows={6}
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">About Page Subtitle (Under Image)</label>
-                      <input
-                        type="text"
-                        value={profileForm.aboutSubtitle || ""}
-                        onChange={(e) => setProfileForm({ ...profileForm, aboutSubtitle: e.target.value })}
-                        placeholder="e.g. NLP Master & Advisor"
-                        className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
+                        required
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">About Page Subtitle (Under Image)</label>
+                        <input
+                          type="text"
+                          value={profileForm.aboutSubtitle || ""}
+                          onChange={(e) => setProfileForm({ ...profileForm, aboutSubtitle: e.target.value })}
+                          placeholder="e.g. NLP Master & Advisor"
+                          className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
+                        />
+                      </div>
                       <div className="space-y-2">
                         <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">About Page Portrait Image</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-neutral-950/40 p-3.5 rounded-xl border border-white/5">
