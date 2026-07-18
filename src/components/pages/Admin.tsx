@@ -2642,6 +2642,47 @@ export default function Admin() {
                     </div>
 
                     <div className="space-y-2">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Site Logo</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-neutral-950/40 p-3.5 rounded-xl border border-white/5">
+                        <div className="md:col-span-2 space-y-3">
+                          <ImageUploader 
+                            onUploadComplete={(url) => setProfileForm({ ...profileForm, logoUrl: url })}
+                            currentUrl={profileForm.logoUrl}
+                            pathPrefix="logos"
+                            label="Upload Site Logo"
+                          />
+                          <div className="space-y-1">
+                            <span className="text-[9px] text-gray-400 font-mono block">OR USE AN EXTERNAL URL:</span>
+                            <input
+                              type="text"
+                              value={profileForm.logoUrl || ""}
+                              onChange={(e) => setProfileForm({ ...profileForm, logoUrl: e.target.value })}
+                              className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-xs font-mono"
+                              placeholder="e.g. /logo.png or https://example.com/logo.png"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center justify-center border border-white/5 rounded-xl bg-black/40 p-2">
+                          <span className="text-[9px] text-gray-500 font-mono mb-2 uppercase">Active Logo</span>
+                          {profileForm.logoUrl ? (
+                            <div className="w-20 h-20 overflow-hidden bg-neutral-950 rounded-lg flex items-center justify-center shadow-md">
+                              <img 
+                                src={cleanGoogleDriveUrl(profileForm.logoUrl)} 
+                                alt="Logo Preview" 
+                                className="max-w-full max-h-full object-contain" 
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-20 h-20 rounded-lg border border-dashed border-white/10 flex items-center justify-center text-gray-600">
+                              <span className="font-serif font-bold text-xl">PP</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
                       <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Main Home Portrait / Headshot Image</label>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-neutral-950/40 p-3.5 rounded-xl border border-white/5">
                         <div className="md:col-span-2 space-y-3">
@@ -2834,61 +2875,19 @@ export default function Admin() {
                         onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
                         className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
                         rows={6}
-                        required
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">About Page Subtitle (Under Image)</label>
+                      <input
+                        type="text"
+                        value={profileForm.aboutSubtitle || ""}
+                        onChange={(e) => setProfileForm({ ...profileForm, aboutSubtitle: e.target.value })}
+                        placeholder="e.g. NLP Master & Advisor"
+                        className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">About Page Subtitle (Under Image)</label>
-                        <input
-                          type="text"
-                          value={profileForm.aboutSubtitle || ""}
-                          onChange={(e) => setProfileForm({ ...profileForm, aboutSubtitle: e.target.value })}
-                          placeholder="e.g. NLP Master & Advisor"
-                          className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
-                        />
-                      </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Site Logo</label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-neutral-950/40 p-3.5 rounded-xl border border-white/5">
-                          <div className="md:col-span-2 space-y-3">
-                            <ImageUploader 
-                              onUploadComplete={(url) => setProfileForm({ ...profileForm, logoUrl: url })}
-                              currentUrl={profileForm.logoUrl}
-                              pathPrefix="logos"
-                              label="Upload Site Logo"
-                            />
-                            <div className="space-y-1">
-                              <span className="text-[9px] text-gray-400 font-mono block">OR USE AN EXTERNAL URL:</span>
-                              <input
-                                type="text"
-                                value={profileForm.logoUrl || ""}
-                                onChange={(e) => setProfileForm({ ...profileForm, logoUrl: e.target.value })}
-                                className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-xs font-mono"
-                                placeholder="e.g. /logo.png or https://example.com/logo.png"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex flex-col items-center justify-center border border-white/5 rounded-xl bg-black/40 p-2">
-                            <span className="text-[9px] text-gray-500 font-mono mb-2 uppercase">Active Logo</span>
-                            {profileForm.logoUrl ? (
-                              <div className="w-20 h-20 overflow-hidden bg-neutral-950 rounded-lg flex items-center justify-center shadow-md">
-                                <img 
-                                  src={cleanGoogleDriveUrl(profileForm.logoUrl)} 
-                                  alt="Logo Preview" 
-                                  className="max-w-full max-h-full object-contain" 
-                                  referrerPolicy="no-referrer"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-20 h-20 rounded-lg border border-dashed border-white/10 flex items-center justify-center text-gray-600">
-                                <span className="font-serif font-bold text-xl">PP</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
 
                       <div className="space-y-2">
                         <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">About Page Portrait Image</label>
