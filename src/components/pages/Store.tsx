@@ -1,52 +1,129 @@
 import React, { useState } from "react";
 import { useProfile } from "../../lib/ProfileContext";
-import { cleanGoogleDriveUrl } from "../../lib/imageUtils";
-import { ExternalLink, ShoppingBag, Star, Zap, ShoppingCart, X, Mail } from "lucide-react";
+import { cleanGoogleDriveUrl, uploadImageToFirebase } from "../../lib/imageUtils";
+import { ExternalLink, ShoppingBag, Star, Zap, X, Mail, CheckCircle, User, Phone, MapPin, Calendar, List, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ScrollReveal from "../ui/ScrollReveal";
 import { ResourceItem } from "../../types";
 
 export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) => void }) {
-  const { resources, addMessage } = useProfile();
+  const { resources, addMessage, registrationForms, addEntity } = useProfile();
   
   const products = resources.filter(r => r.type === 'product' && !r.isHidden);
   const affiliates = resources.filter(r => r.type === 'affiliate' && !r.isHidden);
   const references = resources.filter(r => r.type === 'reference' && !r.isHidden);
 
   const [selectedProductForContact, setSelectedProductForContact] = useState<ResourceItem | null>(null);
+  
+  // Standard Form State
   const [contactForm, setContactForm] = useState({ name: "", email: "", mobile: "", message: "" });
+  
+  // Dynamic Form State
+  const [dynamicAnswers, setDynamicAnswers] = useState<Record<string, string>>({});
+  const [uploadingFieldId, setUploadingFieldId] = useState<string | null>(null);
+
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [contactSubmitted, setContactSubmitted] = useState(false);
   const [contactError, setContactError] = useState<string | null>(null);
 
+  const selectedForm = selectedProductForContact?.registrationFormId && registrationForms 
+    ? registrationForms.find(f => f.id === selectedProductForContact.registrationFormId)
+    : null;
+
+  const isFieldVisible = (field: any): boolean => {
+    if (!selectedForm) return true;
+    if (field.isHidden) return false;
+    if (!field.isConditional || !field.dependsOnFieldId) {
+      return true;
+    }
+    const parentField = (selectedForm.fields || []).find((f: any) => f.id === field.dependsOnFieldId);
+    if (!parentField) return true;
+    
+    // Parent must also be visible recursively
+    if (!isFieldVisible(parentField)) return false;
+    
+    const parentVal = (dynamicAnswers[field.dependsOnFieldId] || "").trim().toLowerCase();
+    const expectedVal = (field.dependsOnValue || "").trim().toLowerCase();
+    return parentVal === expectedVal;
+  };
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contactForm.name || !contactForm.email || !contactForm.message) {
-      setContactError("Please complete all required fields.");
-      return;
-    }
-    
     setContactSubmitting(true);
     setContactError(null);
-    
+
     try {
-      await addMessage({
-        name: contactForm.name,
-        email: contactForm.email,
-        mobile: contactForm.mobile,
-        subject: `Product Inquiry/Lead: ${selectedProductForContact?.title}`,
-        message: contactForm.message,
-        createdAt: new Date().toISOString()
-      });
+      if (selectedForm) {
+        // Validate custom dynamic form fields
+        const answersObj: Record<string, string> = {};
+        let mappedName = "";
+        let mappedMobile = "";
+        let mappedAddress = "";
+        
+        for (const field of selectedForm.fields || []) {
+          if (!isFieldVisible(field)) continue;
+          
+          const val = dynamicAnswers[field.id] || "";
+          if (field.required && !val) {
+            setContactError(`Please fill in the required field: "${field.label}"`);
+            setContactSubmitting(false);
+            return;
+          }
+          answersObj[field.label] = val;
+
+          const labelLower = field.label.toLowerCase();
+          const typeLower = (field.type || "").toLowerCase();
+          
+          if (typeLower === "full name" || (labelLower.includes("name") && !mappedName)) {
+            mappedName = val;
+          } else if (typeLower === "phone" || ((labelLower.includes("phone") || labelLower.includes("mobile")) && !mappedMobile)) {
+            mappedMobile = val;
+          } else if (typeLower === "address" || ((labelLower.includes("address") || labelLower.includes("location")) && !mappedAddress)) {
+            mappedAddress = val;
+          }
+        }
+
+        // Add to workshop_registrations so it aligns with the Portfolio dynamic leads
+        await addEntity("workshop_registrations", {
+          workshopId: selectedProductForContact?.id || "unknown",
+          workshopTitle: selectedProductForContact?.title || "Unknown Product",
+          name: mappedName || "Store Lead",
+          mobile: mappedMobile || "Not Provided",
+          address: mappedAddress || "Not Provided",
+          preferredDate: "N/A",
+          additionalInfo: "Store Product Dynamic Form Submission",
+          answers: answersObj,
+          createdAt: new Date().toISOString()
+        });
+
+      } else {
+        // Standard hardcoded fallback
+        if (!contactForm.name || !contactForm.email || !contactForm.message) {
+          setContactError("Please complete all required fields.");
+          setContactSubmitting(false);
+          return;
+        }
+
+        await addMessage({
+          name: contactForm.name,
+          email: contactForm.email,
+          mobile: contactForm.mobile,
+          subject: `Product Inquiry/Lead: ${selectedProductForContact?.title}`,
+          message: contactForm.message,
+          createdAt: new Date().toISOString()
+        });
+      }
+
       setContactSubmitted(true);
       setContactForm({ name: "", email: "", mobile: "", message: "" });
+      setDynamicAnswers({});
       
-      // If there is a payment or external link, redirect them to it
       if (selectedProductForContact?.link) {
         setTimeout(() => {
           window.location.href = selectedProductForContact.link!;
         }, 1500);
       }
+
     } catch (err) {
       console.error("Failed to submit inquiry:", err);
       setContactError("Failed to send message. Please try again or contact me directly.");
@@ -61,6 +138,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       setContactSubmitted(false);
       setContactError(null);
       setContactForm({ name: "", email: "", mobile: "", message: "" });
+      setDynamicAnswers({});
     }, 300);
   };
 
@@ -234,10 +312,12 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
               <div className="p-6 md:p-8">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <Mail className="text-[#d4af37]" size={18} />
+                    {selectedForm ? <Star className="text-[#d4af37]" size={18} /> : <Mail className="text-[#d4af37]" size={18} />}
                     <div>
-                      <h3 className="text-base font-semibold text-white">Product Inquiry</h3>
-                      <p className="text-[10px] text-gray-400 font-mono tracking-wider uppercase mt-0.5">Send a message</p>
+                      <h3 className="text-base font-semibold text-white">
+                        {selectedForm ? selectedForm.name : "Product Inquiry"}
+                      </h3>
+                      <p className="text-[10px] text-gray-400 font-mono tracking-wider uppercase mt-0.5">Secure Registration</p>
                     </div>
                   </div>
                   <button 
@@ -254,7 +334,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
                       <Star className="text-[#d4af37]" size={32} />
                     </div>
                     <h3 className="text-2xl font-serif font-bold text-white">
-                      {selectedProductForContact?.link ? "Registration Successful!" : "Message Sent!"}
+                      {selectedProductForContact?.link ? "Registration Successful!" : (selectedForm?.successMessage || "Message Sent!")}
                     </h3>
                     <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto">
                       {selectedProductForContact?.link 
@@ -271,64 +351,212 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
                     )}
                   </div>
                 ) : (
-                  <form onSubmit={handleContactSubmit} className="space-y-4">
-                    <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-                      Please fill out the form below to inquire about <strong className="text-white">"{selectedProductForContact.title}"</strong>.
-                    </p>
-                    
+                  <form onSubmit={handleContactSubmit} className="space-y-4 text-left">
+                    {selectedForm ? (
+                      /* DYNAMIC FORM TEMPLATE FIELDS */
+                      <div className="space-y-4">
+                        {selectedForm.bannerImage && (
+                          <div className="w-full rounded-xl overflow-hidden border border-white/10 mb-4 bg-black/40 flex items-center justify-center min-h-[100px]">
+                            <img 
+                              src={cleanGoogleDriveUrl(selectedForm.bannerImage)} 
+                              alt="Form Banner" 
+                              className="w-full h-auto object-cover max-h-[300px]" 
+                              referrerPolicy="no-referrer"
+                            />
+                          </div>
+                        )}
+                        
+                        {selectedForm.description && (
+                          <div className="p-3 bg-[#d4af37]/5 border border-[#d4af37]/15 rounded-xl text-[11px] text-amber-300/90 leading-relaxed font-sans mb-2 flex items-start gap-2">
+                            <CheckCircle size={14} className="text-[#d4af37] shrink-0 mt-0.5" />
+                            <span>{selectedForm.description}</span>
+                          </div>
+                        )}
+
+                        {selectedForm.fields && selectedForm.fields.map((field: any) => {
+                          if (!isFieldVisible(field)) {
+                            return null;
+                          }
+
+                          const isRequired = !!field.required;
+                          const labelLower = (field.label || "").toLowerCase();
+                          const typeLower = (field.type || "").toLowerCase();
+
+                          let Icon = User;
+                          if (typeLower === "phone") Icon = Phone;
+                          else if (typeLower === "address") Icon = MapPin;
+                          else if (typeLower === "date") Icon = Calendar;
+                          else if (typeLower === "email") Icon = Mail;
+                          else if (typeLower === "dropdown") Icon = List;
+                          else if (typeLower === "textarea") Icon = MessageCircle;
+
+                          return (
+                            <div key={field.id} className="space-y-1.5 transition-all duration-300">
+                              <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300 flex items-center gap-1">
+                                <Icon size={10} className="text-[#d4af37]" />
+                                {field.label} {isRequired && <span className="text-red-500">*</span>}
+                              </label>
+
+                              {typeLower === "textarea" || typeLower === "address" ? (
+                                <textarea
+                                  required={isRequired}
+                                  rows={2}
+                                  value={dynamicAnswers[field.id] || ""}
+                                  onChange={(e) => setDynamicAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                  placeholder={field.placeholder || `Enter your ${field.label}...`}
+                                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none resize-none"
+                                />
+                              ) : typeLower === "gender" ? (
+                                <select
+                                  required={isRequired}
+                                  value={dynamicAnswers[field.id] || ""}
+                                  onChange={(e) => setDynamicAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none"
+                                >
+                                  <option value="" className="bg-neutral-900 text-white">-- Select Gender --</option>
+                                  <option value="Male" className="bg-neutral-900 text-white">Male</option>
+                                  <option value="Female" className="bg-neutral-900 text-white">Female</option>
+                                  <option value="Other" className="bg-neutral-900 text-white">Other</option>
+                                </select>
+                              ) : typeLower === "dropdown" ? (
+                                <select
+                                  required={isRequired}
+                                  value={dynamicAnswers[field.id] || ""}
+                                  onChange={(e) => setDynamicAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none"
+                                >
+                                  <option value="" className="bg-neutral-900 text-white">{field.placeholder || "-- Select Option --"}</option>
+                                  {(field.options || "")
+                                    .split(",")
+                                    .map((opt: string) => opt.trim())
+                                    .filter((opt: string) => opt.length > 0)
+                                    .map((opt: string, optIdx: number) => (
+                                      <option key={optIdx} value={opt} className="bg-neutral-900 text-white">
+                                        {opt}
+                                      </option>
+                                    ))}
+                                </select>
+                              ) : typeLower.includes("file") || typeLower.includes("image") || typeLower.includes("document") ? (
+                                <div>
+                                  <div className="flex items-center gap-3">
+                                    <label className="flex items-center justify-center px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-semibold cursor-pointer transition-colors text-white">
+                                      <input 
+                                        type="file" 
+                                        className="hidden" 
+                                        onChange={async (e) => {
+                                          if (e.target.files && e.target.files[0]) {
+                                            const file = e.target.files[0];
+                                            setUploadingFieldId(field.id);
+                                            try {
+                                              if (typeLower.includes("image") || typeLower.includes("photo")) {
+                                                const result = await uploadImageToFirebase(file, "registrations/photos");
+                                                setDynamicAnswers(prev => ({ ...prev, [field.id]: result.url }));
+                                              } else {
+                                                const reader = new FileReader();
+                                                reader.onload = (readerEvent) => {
+                                                  const base64Url = readerEvent.target?.result as string;
+                                                  setDynamicAnswers(prev => ({ ...prev, [field.id]: base64Url }));
+                                                };
+                                                reader.readAsDataURL(file);
+                                              }
+                                            } catch (err) {
+                                              console.error("Upload failed", err);
+                                            } finally {
+                                              setUploadingFieldId(null);
+                                            }
+                                          }
+                                        }}
+                                      />
+                                      {uploadingFieldId === field.id ? "Uploading..." : "Upload Document"}
+                                    </label>
+                                    {dynamicAnswers[field.id] && (
+                                      <span className="text-[10px] text-green-400 font-mono flex items-center gap-1">
+                                        <CheckCircle size={12} />
+                                        File Attached
+                                      </span>
+                                    )}
+                                  </div>
+                                  {dynamicAnswers[field.id] && (typeLower.includes("image") || typeLower.includes("photo")) && (
+                                    <div className="mt-2 w-16 h-16 rounded overflow-hidden border border-white/10 bg-neutral-950">
+                                      <img src={cleanGoogleDriveUrl(dynamicAnswers[field.id])} className="w-full h-full object-cover" />
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <input
+                                  type={typeLower === "number" ? "number" : typeLower === "date" ? "date" : typeLower === "email" ? "email" : "text"}
+                                  required={isRequired}
+                                  value={dynamicAnswers[field.id] || ""}
+                                  onChange={(e) => setDynamicAnswers(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                  placeholder={field.placeholder || `Enter ${field.label}...`}
+                                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none"
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* FALLBACK / STANDARD FORM */
+                      <>
+                        <p className="text-xs text-gray-400 mb-4 leading-relaxed">
+                          Please fill out the form below to inquire about <strong className="text-white">"{selectedProductForContact.title}"</strong>.
+                        </p>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Your Name *</label>
+                          <input
+                            type="text"
+                            required
+                            value={contactForm.name}
+                            onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                            placeholder="e.g. John Doe"
+                            className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Email Address *</label>
+                            <input
+                              type="email"
+                              required
+                              value={contactForm.email}
+                              onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                              placeholder="john@example.com"
+                              className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Mobile Number</label>
+                            <input
+                              type="tel"
+                              value={contactForm.mobile}
+                              onChange={(e) => setContactForm({ ...contactForm, mobile: e.target.value })}
+                              placeholder="+91 98765 43210"
+                              className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Your Message *</label>
+                          <textarea
+                            required
+                            rows={4}
+                            value={contactForm.message}
+                            onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                            placeholder="How can I help you regarding this product?"
+                            className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none resize-none transition-all"
+                          />
+                        </div>
+                      </>
+                    )}
+
                     {contactError && (
-                      <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-medium">
+                      <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-medium mt-2">
                         {contactError}
                       </div>
                     )}
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Your Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={contactForm.name}
-                        onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                        placeholder="e.g. John Doe"
-                        className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Email Address *</label>
-                        <input
-                          type="email"
-                          required
-                          value={contactForm.email}
-                          onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                          placeholder="john@example.com"
-                          className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Mobile Number</label>
-                        <input
-                          type="tel"
-                          value={contactForm.mobile}
-                          onChange={(e) => setContactForm({ ...contactForm, mobile: e.target.value })}
-                          placeholder="+91 98765 43210"
-                          className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-mono uppercase tracking-wider text-gray-300">Your Message *</label>
-                      <textarea
-                        required
-                        rows={4}
-                        value={contactForm.message}
-                        onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                        placeholder="How can I help you regarding this product?"
-                        className="w-full px-3 py-2.5 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] outline-none resize-none transition-all"
-                      />
-                    </div>
 
                     <div className="pt-4 flex justify-end">
                       <button
@@ -336,7 +564,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
                         disabled={contactSubmitting}
                         className="px-6 py-2.5 rounded-full bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-semibold text-sm shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                       >
-                        {contactSubmitting ? "Sending..." : "Send Inquiry"}
+                        {contactSubmitting ? "Sending..." : (selectedForm?.buttonText || "Send Inquiry")}
                       </button>
                     </div>
                   </form>

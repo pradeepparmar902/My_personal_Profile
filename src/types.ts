@@ -195,11 +195,12 @@ export interface ResourceItem {
   title: string;
   description: string;
   imageUrl?: string;
-  link: string;
+  link?: string;
   price?: string;
   platform?: string;
   personalNote?: string;
   isHidden?: boolean;
   allowRegistration?: boolean;
+  registrationFormId?: string;
   order?: number;
 }

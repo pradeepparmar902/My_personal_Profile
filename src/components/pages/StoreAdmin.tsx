@@ -6,7 +6,7 @@ import ImageUploader from "../ui/ImageUploader";
 import { cleanGoogleDriveUrl } from "../../lib/imageUtils";
 
 export default function StoreAdmin() {
-  const { resources, addResource, updateResource, deleteResource } = useProfile();
+  const { resources, addResource, updateResource, deleteResource, registrationForms } = useProfile();
   const [editingId, setEditingId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<Partial<ResourceItem>>({
@@ -19,7 +19,8 @@ export default function StoreAdmin() {
     platform: '',
     personalNote: '',
     isHidden: false,
-    allowRegistration: false
+    allowRegistration: false,
+    registrationFormId: ''
   });
 
   const handleEdit = (item: ResourceItem) => {
@@ -39,7 +40,8 @@ export default function StoreAdmin() {
       platform: '',
       personalNote: '',
       isHidden: false,
-      allowRegistration: false
+      allowRegistration: false,
+      registrationFormId: ''
     });
   };
 
@@ -172,6 +174,23 @@ export default function StoreAdmin() {
               <label htmlFor="allowRegistration" className="text-sm text-gray-300">
                 Enable Built-in Registration/Inquiry Form (Instead of immediate external checkout)
               </label>
+            </div>
+          )}
+
+          {formData.type === 'product' && (
+            <div>
+              <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Custom Registration Form</label>
+              <select
+                value={formData.registrationFormId || ""}
+                onChange={(e) => setFormData({ ...formData, registrationFormId: e.target.value })}
+                className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none mt-1"
+              >
+                <option value="">-- Use Standard Form --</option>
+                {registrationForms?.map((form: any) => (
+                  <option key={form.id} value={form.id}>{form.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Select a dynamic form template to use instead of the standard Name/Email/Message form.</p>
             </div>
           )}
 
