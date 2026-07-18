@@ -366,9 +366,16 @@ export default function Home({ setCurrentTab }: HomeProps) {
                 </button>
                 <button
                   onClick={handleScheduleConsultation}
-                  className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-medium tracking-wide rounded-full border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="group relative w-full sm:w-auto px-8 py-4 rounded-full font-bold tracking-wide transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-[0_0_20px_rgba(236,72,153,0.3)] hover:shadow-[0_0_40px_rgba(236,72,153,0.6)] hover:-translate-y-1 overflow-hidden"
                 >
-                  {profile?.consultationButtonText || "Schedule Consultation"}
+                  <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-pink-500 to-orange-500 group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-pink-500 to-orange-500 opacity-50 blur-xl group-hover:opacity-80 transition-opacity duration-500" />
+                  
+                  <span className="relative z-10 text-white drop-shadow-lg">
+                    {profile?.consultationButtonText || "Schedule Consultation"}
+                  </span>
+                  
+                  <div className="relative z-10 w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_10px_white]" />
                 </button>
               </div>
             </ScrollReveal>
