@@ -368,7 +368,7 @@ export default function Home({ setCurrentTab }: HomeProps) {
                   onClick={handleScheduleConsultation}
                   className="w-full sm:w-auto px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-medium tracking-wide rounded-full border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  Schedule Consultation
+                  {profile?.consultationButtonText || "Schedule Consultation"}
                 </button>
               </div>
             </ScrollReveal>
@@ -1642,7 +1642,7 @@ export default function Home({ setCurrentTab }: HomeProps) {
               </div>
 
               <div className="relative pt-6 border-t border-white/5 mt-6 flex items-center justify-between text-xs font-semibold text-[#d4af37] group-hover:text-white transition-colors">
-                <span>Schedule Consultation</span>
+                <span>{profile?.consultationButtonText || "Schedule Consultation"}</span>
                 <div className="p-1.5 rounded-full bg-white/5 group-hover:bg-[#d4af37] group-hover:text-black transition-all">
                   <ArrowRight size={14} />
                 </div>

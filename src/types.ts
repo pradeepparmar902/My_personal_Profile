@@ -22,6 +22,7 @@ export interface Profile {
   stats: { label: string; value: string }[];
   badge?: string;
   featuredWorkshopId?: string;
+  consultationButtonText?: string;
   aboutSubtitle?: string;
   aboutAvatarUrl?: string;
   highlights?: { title: string; description: string }[];

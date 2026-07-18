@@ -2731,19 +2731,32 @@ export default function Admin() {
                       />
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Schedule Consultation Button Link (Featured Workshop)</label>
-                      <select
-                        value={profileForm.featuredWorkshopId || ""}
-                        onChange={(e) => setProfileForm({ ...profileForm, featuredWorkshopId: e.target.value })}
-                        className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none"
-                      >
-                        <option value="">Default (Scroll to Contact section)</option>
-                        {projects.filter(p => !p.isHidden).map(p => (
-                          <option key={p.id} value={p.id}>{p.title}</option>
-                        ))}
-                      </select>
-                      <p className="text-[10px] text-gray-500 font-mono mt-1">If selected, the "Schedule Consultation" button on the Home Page will open this workshop's registration form directly to capture leads instantly.</p>
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Schedule Consultation Button Link (Featured Workshop)</label>
+                        <select
+                          value={profileForm.featuredWorkshopId || ""}
+                          onChange={(e) => setProfileForm({ ...profileForm, featuredWorkshopId: e.target.value })}
+                          className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none"
+                        >
+                          <option value="">Default (Scroll to Contact section)</option>
+                          {projects.filter(p => !p.isHidden).map(p => (
+                            <option key={p.id} value={p.id}>{p.title}</option>
+                          ))}
+                        </select>
+                        <p className="text-[10px] text-gray-500 font-mono mt-1">If selected, the "Schedule Consultation" button on the Home Page will open this workshop's registration form directly to capture leads instantly.</p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Consultation Button Text</label>
+                        <input
+                          type="text"
+                          value={profileForm.consultationButtonText || ""}
+                          onChange={(e) => setProfileForm({ ...profileForm, consultationButtonText: e.target.value })}
+                          placeholder="e.g. Schedule Consultation"
+                          className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
+                        />
+                      </div>
                     </div>
 
                     {/* Dynamic Home Statistics Counters Array Form */}
