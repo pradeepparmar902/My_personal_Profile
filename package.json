@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "start": "node server.js",
-    "build": "vite build",
+    "build": "vite build && cp -r dist/* ../../../ || true",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "preview": "vite preview",
