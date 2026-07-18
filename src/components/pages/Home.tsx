@@ -275,7 +275,7 @@ export default function Home({ setCurrentTab }: HomeProps) {
             <ScrollReveal direction="down" delay={0.05}>
               <div className="mb-4">
                 <img 
-                  src={profile?.logoUrl || "/logo.png"} 
+                  src={(profile?.logoUrl && profile.logoUrl.trim().length > 0) ? profile.logoUrl : "./logo.png"} 
                   alt="Site Logo" 
                   className="h-32 md:h-40 object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)]"
                   onError={(e) => {
