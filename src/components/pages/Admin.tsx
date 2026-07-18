@@ -2739,7 +2739,7 @@ export default function Admin() {
                         className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none"
                       >
                         <option value="">Default (Scroll to Contact section)</option>
-                        {projects.filter(p => p.isActive).map(p => (
+                        {projects.filter(p => !p.isHidden).map(p => (
                           <option key={p.id} value={p.id}>{p.title}</option>
                         ))}
                       </select>
