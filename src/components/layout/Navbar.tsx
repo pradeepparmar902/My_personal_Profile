@@ -38,7 +38,7 @@ export default function Navbar({ currentTab, setCurrentTab }: NavbarProps) {
         >
           <div className="relative flex items-center justify-center w-10 h-10 rounded-full border border-[#d4af37]/40 bg-gradient-to-br from-[#d4af37]/20 to-[#8a6d1c]/20 overflow-hidden shadow-[0_0_15px_rgba(212,175,55,0.2)] group-hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all">
             <img 
-              src="./logo.png" 
+              src="./logo-white.png" 
               alt="Logo" 
               className="w-full h-full object-cover" 
               onError={(e) => {
