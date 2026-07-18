@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useProfile } from "../../lib/ProfileContext";
+import { forceSeedDatabase } from "../../lib/seed";
 import { cleanGoogleDriveUrl } from "../../lib/imageUtils";
 import ImageUploader from "../ui/ImageUploader";
 import { motion, AnimatePresence } from "motion/react";
@@ -651,7 +652,6 @@ export default function Admin() {
     if (!window.confirm("WARNING: This will completely wipe all current Firestore records and re-seed the entire database with the real-world content of pradeepparmar.com. Are you sure you want to proceed?")) return;
     setResetting(true);
     try {
-      const { forceSeedDatabase } = await import("../../lib/seed");
       await forceSeedDatabase();
       showToast("Database successfully reset and re-seeded with your official website content!", "success");
     } catch (err) {
