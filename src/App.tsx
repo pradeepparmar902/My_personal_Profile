@@ -50,9 +50,23 @@ function MainAppContent() {
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a]">
+        
+        {/* Optional Logo */}
+        {profile?.logoUrl && (
+          <div className="mb-8">
+            <img 
+              src={profile.logoUrl} 
+              alt={`${profile.name} Logo`} 
+              className="h-16 w-auto object-contain" 
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        )}
+
+        {/* Profile Avatar & Name */}
         <div className="relative flex items-center justify-center w-24 h-24 rounded-full border border-[#d4af37]/40 bg-[#d4af37]/5 animate-pulse mb-6 overflow-hidden">
-          {profile?.avatar ? (
-            <img src={profile.avatar} alt={profile.name || "Profile"} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          {profile?.avatarUrl ? (
+            <img src={profile.avatarUrl} alt={profile.name || "Profile"} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
           ) : (
             <span className="font-serif font-bold text-3xl text-[#d4af37]">
               {profile?.name ? profile.name.charAt(0).toUpperCase() : "PP"}
