@@ -262,7 +262,8 @@ export default function Admin() {
   const [editingType, setEditingType] = useState<string | null>(null);
   const [selectedSkillCategory, setSelectedSkillCategory] = useState("All");
   const [messagesViewMode, setMessagesViewMode] = useState<"cards" | "excel">("cards");
-  const [registrationsViewMode, setRegistrationsViewMode] = useState<"cards" | "excel">("cards");
+  const [registrationsViewMode, setRegistrationsViewMode] = useState<"cards" | "excel">("excel");
+  const [showRegistrationsDashboard, setShowRegistrationsDashboard] = useState(true);
 
   const handleExportData = () => {
     try {
@@ -4256,12 +4257,90 @@ export default function Admin() {
                         </div>
                       )}
 
+                    {/* DASHBOARD OVERVIEW FOR LEADS */}
+                    {showRegistrationsDashboard && filteredRegistrations.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        {/* Total Leads Card */}
+                        <div className="bg-gradient-to-br from-[#111] to-black border border-white/5 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+                          <div className="w-12 h-12 rounded-full bg-[#d4af37]/10 flex items-center justify-center mb-2">
+                            <Users size={24} className="text-[#d4af37]" />
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-mono uppercase tracking-widest">Total Lifetime Leads</span>
+                          <span className="text-4xl font-serif font-bold text-white mt-1">{filteredRegistrations.length}</span>
+                          <span className="text-[9px] text-[#d4af37]/70 mt-1 uppercase">Ready for Engagement</span>
+                        </div>
+
+                        {/* Workshop Breakdown */}
+                        <div className="bg-[#111] border border-white/5 rounded-xl p-4 shadow-lg">
+                          <div className="flex items-center gap-2 mb-3 border-b border-white/5 pb-2">
+                            <BarChart3 size={16} className="text-[#d4af37]" />
+                            <span className="text-xs font-semibold text-gray-300 font-mono">TOP CAMPAIGNS</span>
+                          </div>
+                          <div className="space-y-2 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar">
+                            {Object.entries(
+                              filteredRegistrations.reduce((acc: any, reg: any) => {
+                                const name = reg.workshopTitle || reg.regFormTitle || "General / Direct";
+                                acc[name] = (acc[name] || 0) + 1;
+                                return acc;
+                              }, {})
+                            )
+                              .sort((a: any, b: any) => b[1] - a[1])
+                              .slice(0, 4)
+                              .map(([name, count]: any, i) => (
+                                <div key={i} className="flex justify-between items-center text-xs">
+                                  <span className="text-gray-400 truncate max-w-[150px]" title={name}>{name}</span>
+                                  <span className="font-mono text-white bg-white/5 px-2 py-0.5 rounded-md">{count}</span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+
+                        {/* Source Breakdown */}
+                        <div className="bg-[#111] border border-white/5 rounded-xl p-4 shadow-lg">
+                          <div className="flex items-center gap-2 mb-3 border-b border-white/5 pb-2">
+                            <PieChart size={16} className="text-[#d4af37]" />
+                            <span className="text-xs font-semibold text-gray-300 font-mono">LEAD SOURCES</span>
+                          </div>
+                          <div className="space-y-2 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar">
+                            {Object.entries(
+                              filteredRegistrations.reduce((acc: any, reg: any) => {
+                                const source = reg.source || reg.platform || "Direct / Unknown";
+                                acc[source] = (acc[source] || 0) + 1;
+                                return acc;
+                              }, {})
+                            )
+                              .sort((a: any, b: any) => b[1] - a[1])
+                              .slice(0, 4)
+                              .map(([source, count]: any, i) => (
+                                <div key={i} className="flex justify-between items-center text-xs">
+                                  <span className="text-gray-400 truncate max-w-[150px] capitalize">{source}</span>
+                                  <span className="font-mono text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded-md">{count}</span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between bg-[#171717] p-2 rounded-xl border border-white/5">
                       <span className="text-xs font-mono text-gray-400 pl-2">
                         Total Bookings: <strong className="text-[#d4af37] font-semibold">{filteredRegistrations.length}</strong>
                       </span>
                       
                       <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
+                        {filteredRegistrations.length > 0 && (
+                          <button
+                            onClick={() => setShowRegistrationsDashboard(!showRegistrationsDashboard)}
+                            className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md flex items-center gap-1.5 transition-all cursor-pointer mr-2 bg-white/5 text-gray-300 hover:text-white hover:bg-white/10"
+                            title="Toggle Dashboard Overview"
+                          >
+                            {showRegistrationsDashboard ? (
+                              <><ChevronUp size={14} /> Hide Overview</>
+                            ) : (
+                              <><ChevronDown size={14} /> Show Overview</>
+                            )}
+                          </button>
+                        )}
                         <button
                           onClick={() => setRegistrationsViewMode("cards")}
                           className={`px-3 py-1 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-all cursor-pointer ${
