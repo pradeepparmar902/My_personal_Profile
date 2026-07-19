@@ -233,7 +233,100 @@ export default function Admin() {
 
   // Authentication states handled earlier
 
-  // CMS view states
+  // CMS view    }
+    setIsSaving(false);
+  };
+
+  const handleDownloadPitch = () => {
+    const pitchText = `# Elevate Your Digital Authority: The Ultimate 3D Personal Branding & CRM Platform
+
+In today's highly competitive digital landscape, a standard website is no longer enough. High-ticket professionals, coaches, consultants, and thought leaders require a platform that not only captures attention through stunning visuals but seamlessly converts visitors into paying clients.
+
+Welcome to the **Dynamic 3D CMS & CRM Platform**—a meticulously engineered, luxury-grade web application designed to serve as your ultimate digital headquarters.
+
+***
+
+## 1. Executive Summary
+
+This platform is not just a website; it is a fully autonomous, self-hosted **Business Engine**. It combines state-of-the-art 3D front-end aesthetics with a powerful, enterprise-grade backend administration panel.
+
+**Key Value Propositions:**
+- **Luxury Aesthetic:** 3D interactive backgrounds, glassmorphism design, and buttery-smooth animations that instantly establish premium authority.
+- **Integrated CRM:** Capture leads, register students for workshops, and manage customer communications directly inside your own secure database—no need for expensive third-party tools like Mailchimp or HubSpot.
+- **Dynamic Content Management (CMS):** A bespoke, intuitive Admin Panel that allows you (or your team) to update every single piece of text, image, and product on the website in real-time, without writing a single line of code.
+- **Monetization Ready:** Built-in digital store and workshop ticketing system with seamless payment gateway integration (e.g., Razorpay/Stripe).
+
+***
+
+## 2. Front-End Experience & Admin Mapping
+
+The platform is divided into distinct, high-converting sections. Here is how your audience interacts with the platform on the front-end, and how effortlessly you control it from the Admin Panel.
+
+### 🌟 The Hero Section (Home Page)
+**The Visitor Experience:** Visitors are greeted by an immersive, interactive 3D particle background, bold typography, and a striking portrait image. This section instantly communicates who you are and what you do.
+**How You Manage It (Admin Panel -> Profile Tab):**
+- Update your massive Hero Name, Professional Subtitle, and Taglines.
+- Change your main headshot image URL instantly.
+- Toggle main navigation tabs on or off if you want to hide a specific page (like "Store") while you are updating inventory.
+
+### 📖 The Biography & Career Timeline
+**The Visitor Experience:** A beautifully structured "About" page detailing your personal story, followed by an interactive timeline of your career history and high-level affiliations. 
+**How You Manage It (Admin Panel -> About / Career History Tabs):**
+- Write your biography using simple text fields.
+- Drag-and-drop your career positions to reorder your timeline.
+- Add "Affiliations" (like Board Member or Volunteer positions) to build massive corporate trust.
+
+### 🎓 Workshops & Ticketing
+**The Visitor Experience:** A dedicated grid showcasing your upcoming or recorded workshops. Users can click into a workshop, read the curriculum, see the metrics (e.g., "500+ Students Taught"), and instantly register and pay.
+**How You Manage It (Admin Panel -> Workshops Management Tab):**
+- Create new workshops in seconds. Add cover images, curriculum bullet points, and pricing.
+- Link custom Registration Forms (built in the "Registration Forms" tab) to specific workshops so you collect the exact data you need from students.
+
+### 🛒 The Digital Store
+**The Visitor Experience:** A sleek e-commerce interface where clients can purchase downloadable resources, eBooks, or consulting packages.
+**How You Manage It (Admin Panel -> Store & Resources Tab):**
+- Add digital products, set prices, and attach payment links. As soon as a client pays, they are granted access to the resource.
+
+### 🏆 Proof of Authority (Achievements, Skills, & Testimonials)
+**The Visitor Experience:** Dedicated sections displaying your certifications, a visual mastery bar of your technical/soft skills, and a carousel of glowing reviews from past clients.
+**How You Manage It (Admin Panel -> Achievements / Skills / Testimonials Tabs):**
+- **Testimonials:** Add student reviews, upload their avatar, and include their professional title to maximize social proof.
+- **Skills:** Add a skill (e.g., "Public Speaking"), set a percentage (95%), and watch the visual bar animate on the front-end.
+- **Achievements:** Group awards into categories and display visual badges/certificates.
+
+### 📬 Lead Capture & CRM Inbox
+**The Visitor Experience:** Visitors can fill out a sleek contact form or scan a QR code to apply for your coaching programs.
+**How You Manage It (Admin Panel -> Leads & Registrations / Contact Inbox Tabs):**
+- Every form submission routes directly into your private CRM. 
+- Filter leads by workshop, export them to Excel/CSV for email marketing, and update their payment statuses manually if needed.
+
+***
+
+## 3. Why Choose This Platform?
+
+### A. Total Data Ownership
+Unlike SaaS builders (Wix, Squarespace) where your data is held hostage on their servers, this platform leverages **Firebase**. You own the database, you own the leads, and you own the code.
+
+### B. Built-In Contextual Training
+Delegating tasks is effortless. The Admin Panel features a **Dynamic Contextual User Manual**. When your assistant logs in to edit a Workshop, they can pull up a customized, sliding help-drawer that gives them exact instructions on how to upload the cover image and write the curriculum.
+
+### C. Enterprise-Grade Security
+Protected by modern authentication, only authorized users can access the dashboard. The system features a highly secured "System Controls" tab for database backups and emergency resets, ensuring your data is never lost or accidentally deleted.
+
+***
+
+**Are you ready to stop using generic templates and step into a digital platform that matches the premium quality of your services?** 
+
+Let’s build your digital empire. 🚀`;
+    const blob = new Blob([pitchText], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "Platform_Commercial_Pitch.md";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const [activeTab, setActiveTab] = useState("profile");
   const [isHelpPanelOpen, setIsHelpPanelOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -5104,7 +5197,32 @@ export default function Admin() {
           )}
 
           {activeTab === "system" && !editingType && (
-            <UserManualEditor />
+            <>
+              <div className="mb-6 p-6 rounded-2xl border border-[#d4af37]/20 bg-[#d4af37]/[0.02] space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-[#d4af37]/10 rounded-xl text-[#d4af37]">
+                    <BookText size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-white">Commercial Pitch Document</h4>
+                    <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                      Download the comprehensive Pitch Document to send to potential clients. It outlines the platform's luxury aesthetic, CRM integration, and total data ownership benefits.
+                    </p>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-[#d4af37]/10 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleDownloadPitch}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-amber-500 hover:opacity-90 text-black font-semibold text-xs tracking-wider uppercase transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_0_15px_rgba(212,175,55,0.3)]"
+                  >
+                    <Download size={14} />
+                    Download Pitch Document (.md)
+                  </button>
+                </div>
+              </div>
+              <UserManualEditor />
+            </>
           )}
         </div>
       </div>
