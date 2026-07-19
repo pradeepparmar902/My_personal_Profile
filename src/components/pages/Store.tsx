@@ -164,21 +164,21 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-4 md:px-6 max-w-7xl mx-auto space-y-24 relative">
+    <div className="min-h-screen pt-20 pb-20 px-4 md:px-6 max-w-7xl mx-auto space-y-12 md:space-y-16 relative">
       
       {/* Header Section */}
       <ScrollReveal>
-        <div className="text-center space-y-6 max-w-3xl mx-auto">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white leading-tight">
+        <div className="text-center space-y-3 max-w-3xl mx-auto">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-white leading-tight">
             Curated <span className="text-[#d4af37]">Resources</span> & Store
           </h1>
-          <p className="text-gray-400 text-lg md:text-xl leading-relaxed">
+          <p className="text-gray-400 text-base md:text-lg leading-relaxed">
             Explore my premium materials, highly recommended tools, and essential resources to accelerate your journey.
           </p>
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="flex flex-col items-center justify-center gap-6 mt-10 max-w-2xl mx-auto">
+        <div className="flex flex-col items-center justify-center gap-4 mt-6 max-w-2xl mx-auto">
           {/* Search Input */}
           <div className="relative w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -221,7 +221,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       {/* SECTION 1: MY PRODUCTS */}
       {products.length > 0 && (activeFilter === "All" || activeFilter === "Products") && (
         <ScrollReveal delay={0.2}>
-          <div className="space-y-12">
+          <div className="space-y-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-[#d4af37]/10 rounded-xl">
                 <ShoppingBag className="text-[#d4af37]" size={28} />
@@ -269,7 +269,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       {/* SECTION 2: AFFILIATES */}
       {affiliates.length > 0 && (activeFilter === "All" || activeFilter === "Affiliates") && (
         <ScrollReveal delay={0.3}>
-          <div className="space-y-12">
+          <div className="space-y-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-pink-500/10 rounded-xl">
                 <Star className="text-pink-500" size={28} />
@@ -323,7 +323,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       {/* SECTION 3: REFERENCES */}
       {references.length > 0 && (activeFilter === "All" || activeFilter === "References") && (
         <ScrollReveal delay={0.4}>
-          <div className="space-y-12">
+          <div className="space-y-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-500/10 rounded-xl">
                 <Zap className="text-blue-500" size={28} />
