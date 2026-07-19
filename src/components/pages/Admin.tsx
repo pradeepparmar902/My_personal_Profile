@@ -57,7 +57,12 @@ import {
   ShoppingCart,
   ChevronLeft,
   ChevronRight,
-  Filter
+  Filter,
+  PieChart,
+  ChevronDown,
+  ChevronUp,
+  BarChart3,
+  Users
 } from "lucide-react";
 
 // Icon mapper for skills
