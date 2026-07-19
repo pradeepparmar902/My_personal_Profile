@@ -174,7 +174,8 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
         return; // Stop here, do not redirect
       }
 
-      const redirectUrl = selectedProductForContact?.link || selectedProductForContact?.externalAppUrl;
+      // If a form is attached, prioritize the form's payment link. Otherwise, fallback to the product's direct link.
+      const redirectUrl = selectedForm ? selectedForm.paymentLink : (selectedProductForContact?.link || selectedProductForContact?.externalAppUrl);
       
       if (redirectUrl) {
         setContactSuccessMsg("Redirecting you to the next step...");
