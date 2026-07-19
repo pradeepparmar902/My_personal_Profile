@@ -21,16 +21,33 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
     );
   };
 
-  const products = resources.filter(r => r.type === 'product' && !r.isHidden && matchesSearch(r));
-  const affiliates = resources.filter(r => r.type === 'affiliate' && !r.isHidden && matchesSearch(r));
-  const references = resources.filter(r => r.type === 'reference' && !r.isHidden && matchesSearch(r));
+  const visibleResources = resources.filter(r => !r.isHidden && matchesSearch(r));
+  
+  // Group by category, providing sensible defaults for older items
+  const categoriesMap = new Map<string, ResourceItem[]>();
+  
+  visibleResources.forEach(r => {
+    let catName = r.category;
+    if (!catName) {
+      if (r.type === 'product') catName = 'Premium Materials';
+      else if (r.type === 'affiliate') catName = 'Recommended Gear';
+      else if (r.type === 'reference') catName = 'Trusted Tools';
+      else catName = 'Store Items';
+    }
+    
+    if (!categoriesMap.has(catName)) {
+      categoriesMap.set(catName, []);
+    }
+    categoriesMap.get(catName)!.push(r);
+  });
+  
+  const uniqueCategories = Array.from(categoriesMap.keys()).sort();
 
   const [activeFilter, setActiveFilter] = useState("All");
+  
   const filterOptions = [
     { id: "All", label: "All Items" },
-    { id: "Products", label: "Premium Materials" },
-    { id: "Affiliates", label: "Recommended Gear" },
-    { id: "References", label: "Trusted Tools" }
+    ...uniqueCategories.map(c => ({ id: c, label: c }))
   ];
 
   const [selectedProductForContact, setSelectedProductForContact] = useState<ResourceItem | null>(null);
@@ -218,142 +235,150 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
         </div>
       </ScrollReveal>
 
-      {/* SECTION 1: MY PRODUCTS */}
-      {products.length > 0 && (activeFilter === "All" || activeFilter === "Products") && (
-        <ScrollReveal delay={0.2}>
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-[#d4af37]/10 rounded-xl">
-                <ShoppingBag className="text-[#d4af37]" size={28} />
-              </div>
-              <div>
-                <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">Premium Materials</h2>
-                <p className="text-gray-400 text-sm md:text-base mt-1">Exclusive products and advanced guides.</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-              {products.map((product) => (
-                <div key={product.id} className="group rounded-2xl bg-white/[0.02] border border-white/5 hover:border-[#d4af37]/30 transition-all overflow-hidden shadow-lg hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] flex flex-col">
-                  {product.imageUrl && (
-                    <div className="aspect-square w-full overflow-hidden relative">
-                      <img 
-                        src={cleanGoogleDriveUrl(product.imageUrl)} 
-                        alt={product.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                    </div>
-                  )}
-                  <div className="p-4 flex flex-col flex-grow">
-                    <h3 className="text-sm md:text-base font-bold text-white mb-2 group-hover:text-[#d4af37] transition-colors line-clamp-2">{product.title}</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed mb-4 flex-grow line-clamp-3">{product.description}</p>
-                    
-                    <div className="flex flex-col gap-2 pt-4 border-t border-white/5 mt-auto">
-                      {product.price && <span className="text-sm font-bold text-white text-center">{product.price}</span>}
-                      <button
-                        onClick={() => setSelectedProductForContact(product)}
-                        className="w-full justify-center px-4 py-2 bg-[#d4af37] hover:bg-[#c4a137] text-black text-xs font-semibold rounded-full transition-colors flex items-center gap-2 cursor-pointer"
-                      >
-                        {product.price ? "Buy Now" : "I am interested"}
-                      </button>
-                    </div>
-                  </div>
+      {/* DYNAMIC SECTIONS */}
+      {uniqueCategories.map((category, idx) => {
+        if (activeFilter !== "All" && activeFilter !== category) return null;
+        
+        const items = categoriesMap.get(category) || [];
+        if (items.length === 0) return null;
+
+        // Determine icon based on the most common type in the category, or default
+        const typeCounts = items.reduce((acc, item) => {
+          acc[item.type] = (acc[item.type] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        let dominantType = 'product';
+        let maxCount = 0;
+        Object.entries(typeCounts).forEach(([t, count]) => {
+          if (count > maxCount) { maxCount = count; dominantType = t; }
+        });
+
+        let Icon = ShoppingBag;
+        let iconColor = "text-[#d4af37]";
+        let iconBg = "bg-[#d4af37]/10";
+        
+        if (dominantType === 'affiliate') {
+          Icon = Star;
+          iconColor = "text-pink-500";
+          iconBg = "bg-pink-500/10";
+        } else if (dominantType === 'reference') {
+          Icon = Zap;
+          iconColor = "text-blue-500";
+          iconBg = "bg-blue-500/10";
+        }
+
+        return (
+          <ScrollReveal key={category} delay={0.2 + (idx * 0.1)}>
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 ${iconBg} rounded-xl`}>
+                  <Icon className={iconColor} size={28} />
                 </div>
-              ))}
-            </div>
-          </div>
-        </ScrollReveal>
-      )}
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">{category}</h2>
+                </div>
+              </div>
+              
+              <div className={`grid gap-4 md:gap-6 ${
+                dominantType === 'reference' 
+                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+                  : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
+              }`}>
+                {items.map(item => {
+                  if (item.type === 'reference') {
+                    return (
+                      <a
+                        key={item.id}
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group p-5 bg-white/[0.02] border border-white/5 hover:bg-blue-500/5 hover:border-blue-500/30 rounded-xl flex items-center justify-between transition-all"
+                      >
+                        <div className="truncate pr-4">
+                          <h4 className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate">{item.title}</h4>
+                          <p className="text-xs text-gray-500 truncate mt-1">{item.description}</p>
+                        </div>
+                        <ExternalLink size={16} className="text-gray-600 group-hover:text-blue-400 shrink-0 transition-colors" />
+                      </a>
+                    );
+                  }
 
-      {/* SECTION 2: AFFILIATES */}
-      {affiliates.length > 0 && (activeFilter === "All" || activeFilter === "Affiliates") && (
-        <ScrollReveal delay={0.3}>
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-pink-500/10 rounded-xl">
-                <Star className="text-pink-500" size={28} />
-              </div>
-              <div>
-                <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">Recommended Gear</h2>
-                <p className="text-gray-400 text-sm md:text-base mt-1">Tools and books I personally use and highly recommend.</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-              {affiliates.map((aff) => (
-                <a 
-                  key={aff.id} 
-                  href={aff.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex flex-col gap-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-pink-500/30 p-3 md:p-4 rounded-2xl transition-all"
-                >
-                  {aff.imageUrl && (
-                    <div className="w-full aspect-square rounded-xl overflow-hidden shrink-0">
-                      <img 
-                        src={cleanGoogleDriveUrl(aff.imageUrl)} 
-                        alt={aff.title} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    </div>
-                  )}
-                  <div className="flex flex-col justify-center flex-grow">
-                    {aff.platform && (
-                      <span className="text-[9px] font-mono tracking-widest uppercase text-pink-500 mb-1.5">{aff.platform}</span>
-                    )}
-                    <h3 className="text-sm md:text-base font-bold text-white mb-1.5 group-hover:text-pink-400 transition-colors line-clamp-2">{aff.title}</h3>
-                    <p className="text-gray-400 text-xs mb-3 line-clamp-3">{aff.description}</p>
-                    {aff.personalNote && (
-                      <div className="bg-pink-500/5 border border-pink-500/10 px-3 py-2 rounded-lg mt-auto">
-                        <p className="text-[10px] text-pink-200/80 italic line-clamp-2">" {aff.personalNote} "</p>
+                  if (item.type === 'affiliate') {
+                    return (
+                      <a 
+                        key={item.id} 
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex flex-col gap-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-pink-500/30 p-3 md:p-4 rounded-2xl transition-all"
+                      >
+                        {item.imageUrl && (
+                          <div className="w-full aspect-square rounded-xl overflow-hidden shrink-0">
+                            <img 
+                              src={cleanGoogleDriveUrl(item.imageUrl)} 
+                              alt={item.title} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          </div>
+                        )}
+                        <div className="flex flex-col justify-center flex-grow">
+                          {item.platform && (
+                            <span className="text-[9px] font-mono tracking-widest uppercase text-pink-500 mb-1.5">{item.platform}</span>
+                          )}
+                          <h3 className="text-sm md:text-base font-bold text-white mb-1.5 group-hover:text-pink-400 transition-colors line-clamp-2">{item.title}</h3>
+                          <p className="text-gray-400 text-xs mb-3 line-clamp-3">{item.description}</p>
+                          {item.personalNote && (
+                            <div className="bg-pink-500/5 border border-pink-500/10 px-3 py-2 rounded-lg mt-auto">
+                              <p className="text-[10px] text-pink-200/80 italic line-clamp-2">" {item.personalNote} "</p>
+                            </div>
+                          )}
+                        </div>
+                      </a>
+                    );
+                  }
+
+                  // Default to Product
+                  return (
+                    <div key={item.id} className="group rounded-2xl bg-white/[0.02] border border-white/5 hover:border-[#d4af37]/30 transition-all overflow-hidden shadow-lg hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] flex flex-col">
+                      {item.imageUrl && (
+                        <div className="aspect-square w-full overflow-hidden relative">
+                          <img 
+                            src={cleanGoogleDriveUrl(item.imageUrl)} 
+                            alt={item.title} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                        </div>
+                      )}
+                      <div className="p-4 flex flex-col flex-grow">
+                        <h3 className="text-sm md:text-base font-bold text-white mb-2 group-hover:text-[#d4af37] transition-colors line-clamp-2">{item.title}</h3>
+                        <p className="text-gray-400 text-xs leading-relaxed mb-4 flex-grow line-clamp-3">{item.description}</p>
+                        
+                        <div className="flex flex-col gap-2 pt-4 border-t border-white/5 mt-auto">
+                          {item.price && <span className="text-sm font-bold text-white text-center">{item.price}</span>}
+                          <button
+                            onClick={() => setSelectedProductForContact(item)}
+                            className="w-full justify-center px-4 py-2 bg-[#d4af37] hover:bg-[#c4a137] text-black text-xs font-semibold rounded-full transition-colors flex items-center gap-2 cursor-pointer"
+                          >
+                            {item.price ? "Buy Now" : "I am interested"}
+                          </button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </a>
-              ))}
-            </div>
-            <p className="text-center text-[10px] text-gray-600 mt-6 max-w-2xl mx-auto">
-              *Disclaimer: Some of these links are affiliate links. If you purchase through them, I may earn a small commission at no extra cost to you. This helps support my work!
-            </p>
-          </div>
-        </ScrollReveal>
-      )}
-
-      {/* SECTION 3: REFERENCES */}
-      {references.length > 0 && (activeFilter === "All" || activeFilter === "References") && (
-        <ScrollReveal delay={0.4}>
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-500/10 rounded-xl">
-                <Zap className="text-blue-500" size={28} />
+                    </div>
+                  );
+                })}
               </div>
-              <div>
-                <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">Trusted Tools</h2>
-                <p className="text-gray-400 text-sm md:text-base mt-1">Software and platforms I use to run my business and study.</p>
-              </div>
+              
+              {dominantType === 'affiliate' && (
+                <p className="text-center text-[10px] text-gray-600 mt-6 max-w-2xl mx-auto">
+                  *Disclaimer: Some of these links are affiliate links. If you purchase through them, I may earn a small commission at no extra cost to you. This helps support my work!
+                </p>
+              )}
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {references.map((ref) => (
-                <a
-                  key={ref.id}
-                  href={ref.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group p-5 bg-white/[0.02] border border-white/5 hover:bg-blue-500/5 hover:border-blue-500/30 rounded-xl flex items-center justify-between transition-all"
-                >
-                  <div className="truncate pr-4">
-                    <h4 className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate">{ref.title}</h4>
-                    <p className="text-xs text-gray-500 truncate mt-1">{ref.description}</p>
-                  </div>
-                  <ExternalLink size={16} className="text-gray-600 group-hover:text-blue-400 shrink-0 transition-colors" />
-                </a>
-              ))}
-            </div>
-          </div>
-        </ScrollReveal>
-      )}
+          </ScrollReveal>
+        );
+      })}
 
       {/* Contact Form Modal */}
       <AnimatePresence>

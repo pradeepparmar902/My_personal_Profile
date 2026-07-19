@@ -191,6 +191,7 @@ export interface WorkshopRegistration {
 
 export interface ResourceItem {
   id?: string;
+  category?: string;
   type: 'product' | 'affiliate' | 'reference';
   title: string;
   description: string;

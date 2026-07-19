@@ -13,6 +13,7 @@ export default function StoreAdmin() {
     type: 'product',
     title: '',
     description: '',
+    category: '',
     imageUrl: '',
     link: '',
     price: '',
@@ -35,6 +36,7 @@ export default function StoreAdmin() {
       type: 'product',
       title: '',
       description: '',
+      category: '',
       imageUrl: '',
       link: '',
       price: '',
@@ -65,18 +67,62 @@ export default function StoreAdmin() {
 
   const renderForm = () => (
     <div className="bg-neutral-900/50 p-6 rounded-xl border border-white/10 space-y-4">
-      <div className="flex gap-4 mb-6 border-b border-white/5 pb-4">
-        {['product', 'affiliate', 'reference'].map((type) => (
-          <label key={type} className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              checked={formData.type === type}
-              onChange={() => setFormData({ ...formData, type: type as any })}
-              className="accent-[#d4af37]"
-            />
-            <span className="text-white capitalize">{type}</span>
+      <div className="mb-6 border-b border-white/5 pb-6 space-y-6">
+        <div>
+          <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono mb-3 block">
+            Card Layout Style (Determines visual appearance)
           </label>
-        ))}
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input 
+                type="radio" 
+                checked={formData.type === 'product'}
+                onChange={() => setFormData({ ...formData, type: 'product' as any })}
+                className="accent-[#d4af37]"
+              />
+              <span className="text-sm text-gray-300 group-hover:text-white">Product (Selling)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input 
+                type="radio" 
+                checked={formData.type === 'affiliate'}
+                onChange={() => setFormData({ ...formData, type: 'affiliate' as any })}
+                className="accent-[#d4af37]"
+              />
+              <span className="text-sm text-gray-300 group-hover:text-white">Affiliate (Gear)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input 
+                type="radio" 
+                checked={formData.type === 'reference'}
+                onChange={() => setFormData({ ...formData, type: 'reference' as any })}
+                className="accent-[#d4af37]"
+              />
+              <span className="text-sm text-gray-300 group-hover:text-white">Simple Link</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono block mb-1">
+            Section Category Name
+          </label>
+          <input
+            type="text"
+            required
+            list="category-suggestions"
+            value={formData.category || ""}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            placeholder="e.g. Premium Materials, My Books, Recommended Gear"
+            className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none"
+          />
+          <datalist id="category-suggestions">
+            {existingCategories.map((cat, idx) => (
+              <option key={idx} value={cat} />
+            ))}
+          </datalist>
+          <p className="text-[10px] text-gray-500 mt-1">This creates a new tab/section on the public Store page.</p>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -243,6 +289,11 @@ export default function StoreAdmin() {
       </div>
     </div>
   );
+
+  // Extract unique categories for auto-suggestion
+  const existingCategories = Array.from(new Set(
+    resources.map(r => r.category).filter(Boolean) as string[]
+  ));
 
   return (
     <div className="space-y-6">
