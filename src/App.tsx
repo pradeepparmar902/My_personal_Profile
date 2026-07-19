@@ -86,7 +86,7 @@ function MainAppContent() {
   };
 
   return (
-    <div className="relative min-h-screen text-white overflow-x-hidden font-sans selection:bg-[#d4af37] selection:text-black">
+    <div className="relative min-h-screen text-white overflow-x-clip font-sans selection:bg-[#d4af37] selection:text-black">
       {/* 3D Canvas Layer (Deferred for Performance, disabled entirely on deep links to prevent WebGL lockups) */}
       {!isDeepLinked && (
         <Suspense fallback={null}>
