@@ -62,8 +62,10 @@ import {
   ChevronDown,
   ChevronUp,
   BarChart3,
-  Users
+  Users,
+  BookText
 } from "lucide-react";
+import HelpManualPanel from "./HelpManualPanel";
 
 // Icon mapper for skills
 const skillIconMap: { [key: string]: any } = {
@@ -232,6 +234,7 @@ export default function Admin() {
 
   // CMS view states
   const [activeTab, setActiveTab] = useState("profile");
+  const [isHelpPanelOpen, setIsHelpPanelOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [draggedProjectIndex, setDraggedProjectIndex] = useState<number | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
@@ -821,20 +824,29 @@ export default function Admin() {
               </>
             )}
           </button>
-          <button
-            onClick={handleExportData}
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Download size={12} />
-            Export Full Backup (JSON)
-          </button>
-          <button
-            onClick={logoutAdmin}
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <LogOut size={12} />
-            Lock Dashboard
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsHelpPanelOpen(true)}
+              className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] hover:bg-[#d4af37]/20 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <BookText size={12} />
+              User Manual
+            </button>
+            <button
+              onClick={handleExportData}
+              className="px-4 py-2 text-xs font-semibold rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download size={12} />
+              Export Full Backup (JSON)
+            </button>
+            <button
+              onClick={logoutAdmin}
+              className="px-4 py-2 text-xs font-semibold rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/25 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <LogOut size={12} />
+              Lock Dashboard
+            </button>
+          </div>
         </div>
       </div>
 
@@ -5232,6 +5244,13 @@ export default function Admin() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <HelpManualPanel 
+        isOpen={isHelpPanelOpen} 
+        onClose={() => setIsHelpPanelOpen(false)} 
+        activeTab={activeTab}
+        editingType={editingType}
+      />
     </div>
   );
 }
