@@ -82,9 +82,6 @@ function MainAppContent() {
                  backgroundImage: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)"
                }} />
         </div>
-        <p className="text-gray-500 font-mono text-[10px] uppercase tracking-widest mt-3">
-          Synchronizing Luxury 3D Sandbox...
-        </p>
       </div>
     );
   }
