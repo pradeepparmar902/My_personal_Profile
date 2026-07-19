@@ -54,7 +54,10 @@ import {
   List,
   Send,
   Upload,
-  ShoppingCart
+  ShoppingCart,
+  ChevronLeft,
+  ChevronRight,
+  Filter
 } from "lucide-react";
 
 // Icon mapper for skills
@@ -224,7 +227,9 @@ export default function Admin() {
 
   // CMS view states
   const [activeTab, setActiveTab] = useState("profile");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [draggedProjectIndex, setDraggedProjectIndex] = useState<number | null>(null);
+  const [workshopFilters, setWorkshopFilters] = useState({ workshop: "All", source: "All", status: "All" });
   const [localNavConfig, setLocalNavConfig] = useState<any[]>(
     profile?.navConfig?.length 
       ? [...profile.navConfig] 
@@ -829,47 +834,58 @@ export default function Admin() {
       {/* Main CMS Selector Tab Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Navigation panel */}
-        <div className="lg:col-span-3 rounded-2xl border border-white/5 bg-black/40 p-3 md:p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2 lg:gap-0 lg:space-y-1">
-          {[
-            { id: "profile", label: "Profile (Home Page)", icon: User },
-            { id: "about", label: "About Page", icon: Info },
-            { id: "workshops", label: "Workshops Management", icon: BookOpen },
-            { id: "forms", label: "Registration Forms", icon: FileSpreadsheet },
-            { id: "store", label: "Store & Resources", icon: ShoppingCart },
-            { id: "experiences", label: "Career History", icon: Briefcase },
-            { id: "skills", label: "Capabilities", icon: Award },
-            { id: "testimonials", label: "Student Reviews", icon: MessageSquare },
-            { id: "achievements", label: "Achievements", icon: Trophy },
-            { id: "positions", label: "Affiliations", icon: Link2 },
-            { id: "messages", label: "Contact Inbox", icon: Mail },
-            { id: "registrations", label: "Workshop Invites", icon: Calendar },
-            { id: "navigation", label: "Site Navigation", icon: List },
-            { id: "system", label: "System Controls", icon: Sliders },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setEditingType(null);
-                }}
-                className={`w-full text-left px-3.5 py-2.5 lg:px-4 lg:py-3 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-2.5 lg:gap-3 transition-colors cursor-pointer ${
-                  isActive 
-                    ? "text-black bg-gradient-to-r from-[#d4af37] to-amber-500 font-semibold" 
-                    : "text-gray-300 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <Icon size={14} className="shrink-0" />
-                <span className="truncate">{tab.label}</span>
-              </button>
-            );
-          })}
+        <div className={`${isSidebarCollapsed ? 'lg:col-span-1' : 'lg:col-span-3'} transition-all duration-300 rounded-2xl border border-white/5 bg-black/40 p-3 md:p-4 flex flex-col gap-2 lg:gap-0 lg:space-y-1`}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2 lg:gap-0 lg:space-y-1 flex-1">
+            {[
+              { id: "profile", label: "Profile (Home Page)", icon: User },
+              { id: "about", label: "About Page", icon: Info },
+              { id: "workshops", label: "Workshops Management", icon: BookOpen },
+              { id: "forms", label: "Registration Forms", icon: FileSpreadsheet },
+              { id: "store", label: "Store & Resources", icon: ShoppingCart },
+              { id: "experiences", label: "Career History", icon: Briefcase },
+              { id: "skills", label: "Capabilities", icon: Award },
+              { id: "testimonials", label: "Student Reviews", icon: MessageSquare },
+              { id: "achievements", label: "Achievements", icon: Trophy },
+              { id: "positions", label: "Affiliations", icon: Link2 },
+              { id: "messages", label: "Contact Inbox", icon: Mail },
+              { id: "registrations", label: "Workshop Invites", icon: Calendar },
+              { id: "navigation", label: "Site Navigation", icon: List },
+              { id: "system", label: "System Controls", icon: Sliders },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setEditingType(null);
+                  }}
+                  className={`w-full text-left px-3.5 py-2.5 lg:px-4 lg:py-3 rounded-xl text-xs lg:text-sm font-medium flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-2.5 lg:gap-3'} transition-colors cursor-pointer ${
+                    isActive 
+                      ? "text-black bg-gradient-to-r from-[#d4af37] to-amber-500 font-semibold" 
+                      : "text-gray-300 hover:bg-white/5 hover:text-white"
+                  }`}
+                  title={isSidebarCollapsed ? tab.label : undefined}
+                >
+                  <Icon size={isSidebarCollapsed ? 20 : 14} className="shrink-0" />
+                  {!isSidebarCollapsed && <span className="truncate">{tab.label}</span>}
+                </button>
+              );
+            })}
+          </div>
+          {/* Collapse Toggle Button (Hidden on Mobile) */}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="hidden lg:flex items-center justify-center mt-4 p-2 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-colors border border-white/5"
+            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
         </div>
 
         {/* CMS Editor Body Panel */}
-        <div className="lg:col-span-9 rounded-2xl border border-white/5 bg-black/30 p-6 md:p-8 min-h-[500px]">
+        <div className={`${isSidebarCollapsed ? 'lg:col-span-11' : 'lg:col-span-9'} transition-all duration-300 rounded-2xl border border-white/5 bg-black/30 p-6 md:p-8 min-h-[500px]`}>
           {editingType ? (
             // generic inline creator/editor modal
             <form onSubmit={handleSaveEntity} className="space-y-5">
@@ -4029,6 +4045,16 @@ export default function Admin() {
                   return Array.from(keys);
                 })();
 
+                const uniqueWorkshops = Array.from(new Set((workshopRegistrations || []).map(r => r.workshopTitle))).filter(Boolean);
+                const uniqueSources = Array.from(new Set((workshopRegistrations || []).map(r => r.source || "Unknown")));
+                
+                const filteredRegistrations = (workshopRegistrations || []).filter(reg => {
+                  if (workshopFilters.workshop !== "All" && reg.workshopTitle !== workshopFilters.workshop) return false;
+                  if (workshopFilters.source !== "All" && (reg.source || "Unknown") !== workshopFilters.source) return false;
+                  if (workshopFilters.status !== "All" && (reg.status || "Confirmed Entry") !== workshopFilters.status) return false;
+                  return true;
+                });
+
                 return (
                   <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4 text-left">
@@ -4057,9 +4083,7 @@ export default function Admin() {
                           className="px-3 py-1.5 bg-[#d4af37] text-black text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer hover:bg-amber-400 transition-all"
                         >
                           <Plus size={13} />
-                          Add Manual Lead
                         </button>
-
                         <button
                           onClick={seedTestRegistrations}
                           className="px-3 py-1.5 bg-white/5 border border-white/10 text-gray-300 text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer hover:bg-white/10 transition-all"
@@ -4069,10 +4093,10 @@ export default function Admin() {
                           Seed Test Data
                         </button>
 
-                        {workshopRegistrations && workshopRegistrations.length > 0 && (
+                        {filteredRegistrations.length > 0 && (
                           <button
                             onClick={() => downloadCSV(
-                              workshopRegistrations,
+                              filteredRegistrations,
                               "workshop_registrations",
                               ["Workshop", "Name", "Mobile", "Address", "Preferred Date", "Source", "Status", ...dynamicKeys, "Additional Note", "Registered At"],
                               (row, header) => {
@@ -4100,9 +4124,59 @@ export default function Admin() {
                       </div>
                     </div>
 
+                    {/* Filter UI */}
+                    <div className="bg-[#171717] p-3 rounded-xl border border-white/5 flex flex-col sm:flex-row gap-3">
+                      <div className="flex-1">
+                        <label className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 block">Filter by Workshop</label>
+                        <select
+                          value={workshopFilters.workshop}
+                          onChange={(e) => setWorkshopFilters(prev => ({ ...prev, workshop: e.target.value }))}
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-[#d4af37]"
+                        >
+                          <option value="All">All Workshops</option>
+                          {uniqueWorkshops.map(w => (
+                            <option key={w} value={w}>{w}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 block">Filter by Source</label>
+                        <select
+                          value={workshopFilters.source}
+                          onChange={(e) => setWorkshopFilters(prev => ({ ...prev, source: e.target.value }))}
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-[#d4af37]"
+                        >
+                          <option value="All">All Sources</option>
+                          {uniqueSources.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 block">Filter by Status</label>
+                        <select
+                          value={workshopFilters.status}
+                          onChange={(e) => setWorkshopFilters(prev => ({ ...prev, status: e.target.value }))}
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-[#d4af37]"
+                        >
+                          <option value="All">All Statuses</option>
+                          <option value="Confirmed Entry">Confirmed Entry</option>
+                          <option value="Waitlist Entry">Waitlist Entry</option>
+                        </select>
+                      </div>
+                      <div className="flex items-end">
+                         <button 
+                            onClick={() => setWorkshopFilters({ workshop: "All", source: "All", status: "All" })}
+                            className="h-[34px] px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-gray-300 transition-colors flex items-center gap-1 cursor-pointer"
+                         >
+                            <Filter size={12} /> Clear
+                         </button>
+                      </div>
+                    </div>
+
                     <div className="flex items-center justify-between bg-[#171717] p-2 rounded-xl border border-white/5">
                       <span className="text-xs font-mono text-gray-400 pl-2">
-                        Total Bookings: <strong className="text-[#d4af37] font-semibold">{workshopRegistrations?.length || 0}</strong>
+                        Total Bookings: <strong className="text-[#d4af37] font-semibold">{filteredRegistrations.length}</strong>
                       </span>
                       
                       <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
@@ -4131,10 +4205,10 @@ export default function Admin() {
                       </div>
                     </div>
 
-                    {(!workshopRegistrations || workshopRegistrations.length === 0) ? (
+                    {(!filteredRegistrations || filteredRegistrations.length === 0) ? (
                       <div className="text-center py-16 text-gray-500 rounded-2xl border border-white/5 bg-white/[0.01] flex flex-col items-center justify-center gap-3">
                         <FileSpreadsheet size={32} className="text-gray-600" />
-                        <p className="text-sm font-sans">No workshop registrations received yet.</p>
+                        <p className="text-sm font-sans">No matching registrations found.</p>
                         <button 
                           onClick={seedTestRegistrations}
                           className="mt-2 text-xs text-[#d4af37] hover:underline cursor-pointer"
@@ -4144,7 +4218,7 @@ export default function Admin() {
                       </div>
                     ) : registrationsViewMode === "cards" ? (
                       <div className="space-y-4">
-                        {workshopRegistrations.map((reg) => (
+                        {filteredRegistrations.map((reg) => (
                           <div 
                             key={reg.id} 
                             className="p-5 rounded-xl border border-white/5 bg-black/40 hover:border-white/10 transition-colors space-y-3 text-left"
@@ -4274,7 +4348,7 @@ export default function Admin() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5 font-sans">
-                              {workshopRegistrations.map((reg, index) => (
+                              {filteredRegistrations.map((reg, index) => (
                                 <tr key={reg.id} className="hover:bg-[#d4af37]/5 transition-colors group">
                                   <td className="p-3 border-r border-white/5 font-mono text-gray-500 text-[10px] select-none text-center">
                                     {(index + 1).toString().padStart(2, "0")}
