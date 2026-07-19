@@ -4274,6 +4274,13 @@ export default function Admin() {
                           >
                             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
                               <div className="flex items-center flex-wrap gap-2">
+                                <button
+                                  onClick={() => openEditEntity("workshop_registration", reg.id || "", reg)}
+                                  className="p-1 text-[#d4af37] hover:text-amber-300 bg-[#d4af37]/10 hover:bg-[#d4af37]/20 rounded cursor-pointer transition-colors"
+                                  title="Edit Registration"
+                                >
+                                  <Edit size={12} />
+                                </button>
                                 <span className="text-[10px] uppercase tracking-wider font-semibold text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded">
                                   {reg.workshopTitle}
                                 </span>
@@ -4294,13 +4301,6 @@ export default function Admin() {
                                   Registered: {new Date(reg.createdAt).toLocaleString()}
                                 </span>
                                 <div className="flex items-center gap-1.5 border-l border-white/5 pl-3">
-                                  <button
-                                    onClick={() => openEditEntity("workshop_registration", reg.id || "", reg)}
-                                    className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded cursor-pointer transition-colors"
-                                    title="Edit Registration"
-                                  >
-                                    <Edit size={12} />
-                                  </button>
                                   <button
                                     onClick={() => handleDeleteEntity("workshop_registrations", reg.id || "")}
                                     className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded cursor-pointer transition-colors"
@@ -4390,6 +4390,7 @@ export default function Admin() {
                             <thead>
                               <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-mono uppercase tracking-wider text-gray-400 select-none">
                                 <th className="p-3.5 border-r border-white/5 font-bold text-center">#</th>
+                                <th className="p-3.5 border-r border-white/5 font-bold text-center">Edit</th>
                                 <th className="p-3.5 border-r border-white/5 font-bold">Workshop Goal</th>
                                 <th className="p-3.5 border-r border-white/5 font-bold">Attendee Name</th>
                                 <th className="p-3.5 border-r border-white/5 font-bold">WhatsApp Mobile</th>
@@ -4410,6 +4411,15 @@ export default function Admin() {
                                 <tr key={reg.id} className="hover:bg-[#d4af37]/5 transition-colors group">
                                   <td className="p-3 border-r border-white/5 font-mono text-gray-500 text-[10px] select-none text-center">
                                     {(index + 1).toString().padStart(2, "0")}
+                                  </td>
+                                  <td className="p-3 border-r border-white/5 text-center">
+                                    <button
+                                      onClick={() => openEditEntity("workshop_registration", reg.id || "", reg)}
+                                      className="p-1 text-[#d4af37] hover:text-amber-300 bg-[#d4af37]/10 hover:bg-[#d4af37]/20 rounded cursor-pointer transition-colors inline-flex"
+                                      title="Edit"
+                                    >
+                                      <Edit size={12} />
+                                    </button>
                                   </td>
                                   <td className="p-3 border-r border-white/5">
                                     <span className="text-[10px] uppercase tracking-wider font-semibold text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded border border-[#d4af37]/20 whitespace-nowrap">
@@ -4469,13 +4479,6 @@ export default function Admin() {
                                   </td>
                                   <td className="p-3 text-center">
                                     <div className="flex items-center justify-center gap-1.5">
-                                      <button
-                                        onClick={() => openEditEntity("workshop_registration", reg.id || "", reg)}
-                                        className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded cursor-pointer transition-colors"
-                                        title="Edit"
-                                      >
-                                        <Edit size={12} />
-                                      </button>
                                       <button
                                         onClick={() => handleDeleteEntity("workshop_registrations", reg.id || "")}
                                         className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded cursor-pointer transition-colors"
