@@ -50,9 +50,18 @@ function MainAppContent() {
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a]">
-        <div className="relative flex items-center justify-center w-20 h-20 rounded-full border border-[#d4af37]/40 bg-[#d4af37]/5 animate-pulse mb-4">
-          <span className="font-serif font-bold text-2xl text-[#d4af37]">PP</span>
+        <div className="relative flex items-center justify-center w-24 h-24 rounded-full border border-[#d4af37]/40 bg-[#d4af37]/5 animate-pulse mb-6 overflow-hidden">
+          {profile?.avatar ? (
+            <img src={profile.avatar} alt={profile.name || "Profile"} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            <span className="font-serif font-bold text-3xl text-[#d4af37]">
+              {profile?.name ? profile.name.charAt(0).toUpperCase() : "PP"}
+            </span>
+          )}
         </div>
+        {profile?.name && (
+          <h2 className="text-xl font-serif text-white mb-4 tracking-wide">{profile.name}</h2>
+        )}
         <div className="w-40 h-1 bg-white/5 rounded-full overflow-hidden">
           <div className="h-full w-1/2 bg-gradient-to-r from-[#d4af37] to-amber-500 rounded-full animate-[shimmer_1.5s_infinite]" 
                style={{

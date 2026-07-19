@@ -72,7 +72,14 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(() => {
+    try {
+      const cached = localStorage.getItem("cached_profile");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [projects, setProjects] = useState<Project[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -109,7 +116,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           ]);
 
           if (profileDoc.exists()) {
-            setProfile({ ...profileDoc.data(), id: "default" } as Profile);
+            const profileData = { ...profileDoc.data(), id: "default" } as Profile;
+            setProfile(profileData);
+            localStorage.setItem("cached_profile", JSON.stringify(profileData));
           }
 
           const projectsList: Project[] = [];
@@ -270,7 +279,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = async (profileData: Profile) => {
     try {
       await setDoc(doc(db, "profiles", "default"), profileData);
-      setProfile({ id: "default", ...profileData });
+      const newProfile = { id: "default", ...profileData };
+      setProfile(newProfile);
+      localStorage.setItem("cached_profile", JSON.stringify(newProfile));
     } catch (error) {
       console.error("Error updating profile:", error);
       throw error;
