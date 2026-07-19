@@ -229,7 +229,8 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("profile");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [draggedProjectIndex, setDraggedProjectIndex] = useState<number | null>(null);
-  const [workshopFilters, setWorkshopFilters] = useState({ workshop: "All", source: "All", status: "All" });
+  const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
   const [localNavConfig, setLocalNavConfig] = useState<any[]>(
     profile?.navConfig?.length 
       ? [...profile.navConfig] 
@@ -4094,15 +4095,82 @@ export default function Admin() {
                   return Array.from(keys);
                 })();
 
-                const uniqueWorkshops = Array.from(new Set((workshopRegistrations || []).map(r => r.workshopTitle))).filter(Boolean);
-                const uniqueSources = Array.from(new Set((workshopRegistrations || []).map(r => r.source || "Unknown")));
-                
                 const filteredRegistrations = (workshopRegistrations || []).filter(reg => {
-                  if (workshopFilters.workshop !== "All" && reg.workshopTitle !== workshopFilters.workshop) return false;
-                  if (workshopFilters.source !== "All" && (reg.source || "Unknown") !== workshopFilters.source) return false;
-                  if (workshopFilters.status !== "All" && (reg.status || "Confirmed Entry") !== workshopFilters.status) return false;
-                  return true;
+                  return Object.entries(columnFilters).every(([col, activeValues]) => {
+                    if (activeValues.length === 0) return true;
+                    
+                    let cellVal = "";
+                    if (col === "Workshop Goal") cellVal = reg.workshopTitle || "";
+                    else if (col === "Attendee Name") cellVal = reg.name || "";
+                    else if (col === "WhatsApp Mobile") cellVal = reg.mobile || "";
+                    else if (col === "Preferred Batch") cellVal = reg.preferredDate || "";
+                    else if (col === "Source") cellVal = reg.source || "Unknown";
+                    else if (col === "Status") cellVal = reg.status || "Confirmed Entry";
+                    else if (col === "Registered At") cellVal = reg.createdAt ? new Date(reg.createdAt).toLocaleDateString() : "";
+                    
+                    return activeValues.includes(cellVal);
+                  });
                 });
+
+                // Helper to render the Excel-style column header with filter
+                const ColumnHeaderFilter = ({ title, field }: { title: string, field: string }) => {
+                  const uniqueValues = Array.from(new Set((workshopRegistrations || []).map(r => {
+                    if (field === "Workshop Goal") return r.workshopTitle || "";
+                    if (field === "Attendee Name") return r.name || "";
+                    if (field === "WhatsApp Mobile") return r.mobile || "";
+                    if (field === "Preferred Batch") return r.preferredDate || "";
+                    if (field === "Source") return r.source || "Unknown";
+                    if (field === "Status") return r.status || "Confirmed Entry";
+                    if (field === "Registered At") return r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "";
+                    return "";
+                  }))).filter(Boolean);
+
+                  const isActive = (columnFilters[field] || []).length > 0;
+                  const isDropdownOpen = activeFilterDropdown === field;
+
+                  return (
+                    <div className="relative inline-flex items-center gap-1.5 cursor-pointer group" onClick={() => setActiveFilterDropdown(isDropdownOpen ? null : field)}>
+                      <span>{title}</span>
+                      <div className={`p-1 rounded transition-colors ${isActive ? "text-[#d4af37]" : "text-gray-500 group-hover:text-gray-300"}`}>
+                        <Filter size={11} fill={isActive ? "currentColor" : "none"} />
+                      </div>
+                      
+                      {isDropdownOpen && (
+                        <div 
+                          className="absolute top-full left-0 mt-1 min-w-[200px] bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl z-50 overflow-hidden"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="p-2 border-b border-white/10 bg-black/40 flex justify-between items-center">
+                            <span className="text-[10px] text-gray-400 font-mono font-semibold">FILTER BY</span>
+                            <div className="flex gap-2">
+                               <button 
+                                 className="text-[9px] text-[#d4af37] hover:underline"
+                                 onClick={() => setColumnFilters(prev => ({ ...prev, [field]: uniqueValues }))}
+                               >All</button>
+                               <button 
+                                 className="text-[9px] text-gray-400 hover:text-white hover:underline"
+                                 onClick={() => setColumnFilters(prev => ({ ...prev, [field]: [] }))}
+                               >Clear</button>
+                            </div>
+                          </div>
+                          <div className="max-h-48 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
+                            {uniqueValues.map(val => {
+                              const isChecked = (columnFilters[field] || []).includes(val);
+                              return (
+                                <label key={val} className="flex items-center gap-2 px-1.5 py-1 hover:bg-white/5 rounded cursor-pointer group/item">
+                                  <div className={`w-3 h-3 rounded flex items-center justify-center border transition-colors ${isChecked ? "bg-[#d4af37] border-[#d4af37]" : "border-white/20 group-hover/item:border-white/40"}`}>
+                                    {isChecked && <Check size={9} className="text-black" />}
+                                  </div>
+                                  <span className="text-xs text-gray-300 truncate font-sans font-normal" title={val}>{val}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                };
 
                 return (
                   <div className="space-y-6">
@@ -4173,55 +4241,20 @@ export default function Admin() {
                       </div>
                     </div>
 
-                    {/* Filter UI */}
-                    <div className="bg-[#171717] p-3 rounded-xl border border-white/5 flex flex-col sm:flex-row gap-3">
-                      <div className="flex-1">
-                        <label className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 block">Filter by Workshop</label>
-                        <select
-                          value={workshopFilters.workshop}
-                          onChange={(e) => setWorkshopFilters(prev => ({ ...prev, workshop: e.target.value }))}
-                          className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-[#d4af37]"
-                        >
-                          <option value="All">All Workshops</option>
-                          {uniqueWorkshops.map(w => (
-                            <option key={w} value={w}>{w}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 block">Filter by Source</label>
-                        <select
-                          value={workshopFilters.source}
-                          onChange={(e) => setWorkshopFilters(prev => ({ ...prev, source: e.target.value }))}
-                          className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-[#d4af37]"
-                        >
-                          <option value="All">All Sources</option>
-                          {uniqueSources.map(s => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 block">Filter by Status</label>
-                        <select
-                          value={workshopFilters.status}
-                          onChange={(e) => setWorkshopFilters(prev => ({ ...prev, status: e.target.value }))}
-                          className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-[#d4af37]"
-                        >
-                          <option value="All">All Statuses</option>
-                          <option value="Confirmed Entry">Confirmed Entry</option>
-                          <option value="Waitlist Entry">Waitlist Entry</option>
-                        </select>
-                      </div>
-                      <div className="flex items-end">
-                         <button 
-                            onClick={() => setWorkshopFilters({ workshop: "All", source: "All", status: "All" })}
-                            className="h-[34px] px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-gray-300 transition-colors flex items-center gap-1 cursor-pointer"
-                         >
-                            <Filter size={12} /> Clear
-                         </button>
-                      </div>
-                    </div>
+                      {Object.values(columnFilters).some(v => v.length > 0) && (
+                        <div className="bg-[#d4af37]/10 border border-[#d4af37]/20 p-2.5 rounded-xl flex items-center justify-between">
+                           <span className="text-xs text-[#d4af37] font-semibold flex items-center gap-1.5">
+                              <Filter size={14} /> 
+                              Filters applied
+                           </span>
+                           <button 
+                              onClick={() => setColumnFilters({})}
+                              className="text-[10px] uppercase tracking-wider font-bold text-black bg-[#d4af37] hover:bg-amber-400 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                           >
+                              Clear All Filters
+                           </button>
+                        </div>
+                      )}
 
                     <div className="flex items-center justify-between bg-[#171717] p-2 rounded-xl border border-white/5">
                       <span className="text-xs font-mono text-gray-400 pl-2">
@@ -4388,21 +4421,21 @@ export default function Admin() {
                         <div className="overflow-x-auto w-full">
                           <table className="w-full min-w-[1200px] border-collapse text-left text-xs text-gray-300 table-layout-auto">
                             <thead>
-                              <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-mono uppercase tracking-wider text-gray-400 select-none">
+                              <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-mono uppercase tracking-wider text-gray-400 select-none align-top">
                                 <th className="p-3.5 border-r border-white/5 font-bold text-center">#</th>
                                 <th className="p-3.5 border-r border-white/5 font-bold text-center">Edit</th>
-                                <th className="p-3.5 border-r border-white/5 font-bold">Workshop Goal</th>
-                                <th className="p-3.5 border-r border-white/5 font-bold">Attendee Name</th>
-                                <th className="p-3.5 border-r border-white/5 font-bold">WhatsApp Mobile</th>
-                                <th className="p-3.5 border-r border-white/5 font-bold">Preferred Batch</th>
+                                <th className="p-3.5 border-r border-white/5 font-bold"><ColumnHeaderFilter title="Workshop Goal" field="Workshop Goal" /></th>
+                                <th className="p-3.5 border-r border-white/5 font-bold"><ColumnHeaderFilter title="Attendee Name" field="Attendee Name" /></th>
+                                <th className="p-3.5 border-r border-white/5 font-bold"><ColumnHeaderFilter title="WhatsApp Mobile" field="WhatsApp Mobile" /></th>
+                                <th className="p-3.5 border-r border-white/5 font-bold"><ColumnHeaderFilter title="Preferred Batch" field="Preferred Batch" /></th>
                                 <th className="p-3.5 border-r border-white/5 font-bold">Physical Address</th>
-                                <th className="p-3.5 border-r border-white/5 font-bold">Source</th>
-                                <th className="p-3.5 border-r border-white/5 font-bold">Status</th>
+                                <th className="p-3.5 border-r border-white/5 font-bold"><ColumnHeaderFilter title="Source" field="Source" /></th>
+                                <th className="p-3.5 border-r border-white/5 font-bold"><ColumnHeaderFilter title="Status" field="Status" /></th>
                                 {dynamicKeys.map(key => (
                                   <th key={key} className="p-3.5 border-r border-white/5 font-bold">{key}</th>
                                 ))}
                                 <th className="p-3.5 border-r border-white/5 font-bold">Additional Query</th>
-                                <th className="p-3.5 border-r border-white/5 font-bold">Registered At</th>
+                                <th className="p-3.5 border-r border-white/5 font-bold"><ColumnHeaderFilter title="Registered At" field="Registered At" /></th>
                                 <th className="p-3.5 text-center font-bold">Actions</th>
                               </tr>
                             </thead>
