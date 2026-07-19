@@ -32,7 +32,8 @@ import {
   WorkshopRegistration,
   RegistrationFormTemplate,
   ReusableField,
-  ResourceItem
+  ResourceItem,
+  UserManual
 } from "../types";
 
 interface ProfileContextType {
@@ -41,6 +42,7 @@ interface ProfileContextType {
   experiences: Experience[];
   skills: Skill[];
   testimonials: Testimonial[];
+  userManuals: UserManual[];
   achievementCategories: AchievementCategory[];
   projectCategories: ProjectCategory[];
   achievements: Achievement[];
@@ -84,6 +86,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [userManuals, setUserManuals] = useState<UserManual[]>([]);
   const [achievementCategories, setAchievementCategories] = useState<AchievementCategory[]>([]);
   const [projectCategories, setProjectCategories] = useState<ProjectCategory[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -143,7 +146,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             fieldsSnap,
             resourcesSnap,
             messagesSnap,
-            regsSnap
+            regsSnap,
+            manualsSnap
           ] = await Promise.all([
             getDocs(collection(db, "experience")),
             getDocs(collection(db, "skills")),
@@ -157,7 +161,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             getDocs(collection(db, "reusable_fields")).catch(err => { console.error(err); return null; }),
             getDocs(collection(db, "resources")).catch(err => { console.error(err); return null; }),
             (isAdmin || auth.currentUser) ? getDocs(collection(db, "messages")).catch(err => { console.error(err); return null; }) : Promise.resolve(null),
-            (isAdmin || auth.currentUser) ? getDocs(collection(db, "workshop_registrations")).catch(err => { console.error(err); return null; }) : Promise.resolve(null)
+            (isAdmin || auth.currentUser) ? getDocs(collection(db, "workshop_registrations")).catch(err => { console.error(err); return null; }) : Promise.resolve(null),
+            getDocs(collection(db, "user_manuals")).catch(err => { console.error(err); return null; })
           ]);
 
           const experiencesList: Experience[] = [];
@@ -245,6 +250,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
               return timeB - timeA;
             });
             setWorkshopRegistrations(regsList);
+          }
+
+          if (manualsSnap) {
+            const manualsList: UserManual[] = [];
+            manualsSnap.forEach((d) => manualsList.push({ ...d.data(), id: d.id } as UserManual));
+            setUserManuals(manualsList);
           }
         })(),
         timeoutPromise
@@ -400,6 +411,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         experiences,
         skills,
         testimonials,
+        userManuals,
         achievementCategories,
         projectCategories,
         achievements,

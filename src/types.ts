@@ -163,6 +163,12 @@ export interface ReusableField {
   createdAt?: string;
 }
 
+export interface UserManual {
+  id: string;
+  content: string;
+  updatedAt?: string;
+}
+
 export interface RegistrationFormTemplate {
   id?: string;
   name: string; // Form name to select from workshop

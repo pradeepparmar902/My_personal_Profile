@@ -1,6 +1,9 @@
-﻿import React from "react";
+﻿import React, { useState, useEffect } from "react";
 import { X, BookOpen, Info, Target, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useProfile } from "../../lib/ProfileContext";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface HelpManualPanelProps {
   isOpen: boolean;
@@ -10,9 +13,42 @@ interface HelpManualPanelProps {
 }
 
 export default function HelpManualPanel({ isOpen, onClose, activeTab, editingType }: HelpManualPanelProps) {
+  const { userManuals } = useProfile();
+  const [customContent, setCustomContent] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (editingType) {
+      const match = userManuals?.find(m => m.id === editingType);
+      if (match && match.content.trim() !== "") {
+        setCustomContent(match.content);
+        return;
+      }
+    }
+    
+    const tabMatch = userManuals?.find(m => m.id === activeTab);
+    if (tabMatch && tabMatch.content.trim() !== "") {
+      setCustomContent(tabMatch.content);
+    } else {
+      setCustomContent(null);
+    }
+  }, [activeTab, editingType, userManuals]);
   
   const getContextualContent = () => {
-    // FORM EDITING CONTEXTS
+    // If a custom manual exists in the database, render it!
+    if (customContent) {
+      return (
+        <div className="prose prose-invert prose-sm max-w-none 
+                        prose-headings:text-white prose-headings:font-serif 
+                        prose-a:text-[#d4af37] prose-strong:text-white
+                        prose-ul:list-disc prose-ol:list-decimal">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {customContent}
+          </ReactMarkdown>
+        </div>
+      );
+    }
+
+    // FORM EDITING CONTEXTS (FALLBACKS)
     if (editingType === "project") {
       return (
         <div className="space-y-6">
@@ -336,7 +372,6 @@ export default function HelpManualPanel({ isOpen, onClose, activeTab, editingTyp
             </Section>
             <Section title="DANGER ZONE" icon={<AlertCircle size={16} className="text-amber-400" />}>
               <ul className="space-y-3">
-                <li><strong className="text-white">Master Reset:</strong> Will WIPE your current data and replace it with dummy data. Do not click unless you are testing!</li>
                 <li><strong className="text-white">Export:</strong> Generates a full JSON backup of everything. Do this regularly!</li>
               </ul>
             </Section>

@@ -66,6 +66,7 @@ import {
   BookText
 } from "lucide-react";
 import HelpManualPanel from "./HelpManualPanel";
+import UserManualEditor from "./UserManualEditor";
 
 // Icon mapper for skills
 const skillIconMap: { [key: string]: any } = {
