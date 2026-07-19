@@ -2662,6 +2662,55 @@ export default function Admin() {
                       rows={3}
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Entry Source</label>
+                      <select
+                        value={entityForm.source || "Store / Resources"}
+                        onChange={(e) => setEntityForm({ ...entityForm, source: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
+                      >
+                        <option value="Store / Resources">Store / Resources</option>
+                        <option value="Workshop / Masterclass">Workshop / Masterclass</option>
+                        <option value="Manual Entry">Manual Entry</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Status</label>
+                      <select
+                        value={entityForm.status || "Confirmed Entry"}
+                        onChange={(e) => setEntityForm({ ...entityForm, status: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm"
+                      >
+                        <option value="Confirmed Entry">Confirmed Entry</option>
+                        <option value="Waitlist Entry">Waitlist Entry</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {entityForm.answers && Object.keys(entityForm.answers).length > 0 && (
+                    <div className="space-y-3 pt-2 border-t border-white/5">
+                      <h4 className="text-[10px] text-[#d4af37] font-mono uppercase tracking-wider font-semibold">Dynamic Form Responses</h4>
+                      {Object.keys(entityForm.answers).map(key => (
+                        <div key={key} className="space-y-1">
+                          <label className="text-[10px] text-gray-400 font-mono capitalize">{key.replace(/_/g, " ")}</label>
+                          <input
+                            type="text"
+                            value={entityForm.answers[key] || ""}
+                            onChange={(e) => setEntityForm({
+                              ...entityForm,
+                              answers: {
+                                ...entityForm.answers,
+                                [key]: e.target.value
+                              }
+                            })}
+                            className="w-full px-3 py-2 bg-black/40 border border-white/10 rounded-lg text-white text-sm"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -4240,9 +4289,27 @@ export default function Admin() {
                                   {reg.name}
                                 </h4>
                               </div>
-                              <span className="text-[10px] font-mono text-gray-500">
-                                Registered: {new Date(reg.createdAt).toLocaleString()}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-mono text-gray-500 hidden sm:inline-block">
+                                  Registered: {new Date(reg.createdAt).toLocaleString()}
+                                </span>
+                                <div className="flex items-center gap-1.5 border-l border-white/5 pl-3">
+                                  <button
+                                    onClick={() => openEditEntity("workshop_registration", reg.id || "", reg)}
+                                    className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded cursor-pointer transition-colors"
+                                    title="Edit Registration"
+                                  >
+                                    <Edit size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteEntity("workshop_registrations", reg.id || "")}
+                                    className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded cursor-pointer transition-colors"
+                                    title="Delete Registration"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-left">
@@ -4312,15 +4379,6 @@ export default function Admin() {
                                 </div>
                               </div>
                             )}
-   
-                            <div className="flex justify-end pt-2 border-t border-white/[0.02]">
-                              <button
-                                onClick={() => handleDeleteEntity("workshop_registrations", reg.id || "")}
-                                className="px-3 py-1.5 text-[10px] font-semibold tracking-wider uppercase border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg cursor-pointer"
-                              >
-                                Remove / Delete Lead
-                              </button>
-                            </div>
                           </div>
                         ))}
                       </div>
@@ -4410,12 +4468,22 @@ export default function Admin() {
                                     {new Date(reg.createdAt).toLocaleString()}
                                   </td>
                                   <td className="p-3 text-center">
-                                    <button
-                                      onClick={() => handleDeleteEntity("workshop_registrations", reg.id || "")}
-                                      className="px-2.5 py-1 text-[9px] font-mono uppercase tracking-wider text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded border border-red-500/20 cursor-pointer transition-colors"
-                                    >
-                                      Delete
-                                    </button>
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <button
+                                        onClick={() => openEditEntity("workshop_registration", reg.id || "", reg)}
+                                        className="p-1.5 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded cursor-pointer transition-colors"
+                                        title="Edit"
+                                      >
+                                        <Edit size={12} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteEntity("workshop_registrations", reg.id || "")}
+                                        className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 rounded cursor-pointer transition-colors"
+                                        title="Delete"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
                               ))}
