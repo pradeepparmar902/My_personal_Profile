@@ -189,6 +189,8 @@ export interface WorkshopRegistration {
   additionalInfo?: string;
   customFieldsData?: { [key: string]: any }; // Store any dynamic answers for custom fields
   answers?: { [key: string]: any }; // Support legacy or dynamic custom answers
+  source?: string; // e.g. "Store" or "Workshop"
+  status?: string; // e.g. "Confirmed Entry" or "Waitlist Entry"
   createdAt: string;
 }
 

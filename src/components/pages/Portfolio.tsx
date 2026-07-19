@@ -196,6 +196,8 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
           preferredDate: mappedDate,
           additionalInfo: mappedQueries || "Dynamic Form Submission",
           answers: answersObj,
+          source: "Workshop / Masterclass",
+          status: selectedForm?.isPaused ? "Waitlist Entry" : "Confirmed Entry",
           createdAt: new Date().toISOString()
         });
 
@@ -215,6 +217,8 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
           address: regForm.address,
           preferredDate: regForm.preferredDate || selectedWorkshopForReg.workshopDate || "TBD",
           additionalInfo: regForm.additionalInfo || "",
+          source: "Workshop / Masterclass",
+          status: "Confirmed Entry", // Legacy hardcoded forms don't support pause toggle yet
           createdAt: new Date().toISOString()
         });
       }

@@ -143,6 +143,8 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
           preferredDate: "N/A",
           additionalInfo: "Store Product Dynamic Form Submission",
           answers: answersObj,
+          source: "Store / Resources",
+          status: selectedForm?.isPaused ? "Waitlist Entry" : "Confirmed Entry",
           createdAt: new Date().toISOString()
         });
 

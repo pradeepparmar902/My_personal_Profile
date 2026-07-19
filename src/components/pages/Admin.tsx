@@ -4074,13 +4074,15 @@ export default function Admin() {
                             onClick={() => downloadCSV(
                               workshopRegistrations,
                               "workshop_registrations",
-                              ["Workshop", "Name", "Mobile", "Address", "Preferred Date", ...dynamicKeys, "Additional Note", "Registered At"],
+                              ["Workshop", "Name", "Mobile", "Address", "Preferred Date", "Source", "Status", ...dynamicKeys, "Additional Note", "Registered At"],
                               (row, header) => {
                                 if (header === "Workshop") return row.workshopTitle || "";
                                 if (header === "Name") return row.name || "";
                                 if (header === "Mobile") return row.mobile || "";
                                 if (header === "Address") return row.address || "";
                                 if (header === "Preferred Date") return row.preferredDate || "";
+                                if (header === "Source") return row.source || "Unknown";
+                                if (header === "Status") return row.status || "Confirmed Entry";
                                 if (header === "Additional Note") return row.additionalInfo || "";
                                 if (header === "Registered At") return row.createdAt ? new Date(row.createdAt).toLocaleString() : "";
                                 if (dynamicKeys.includes(header)) {
@@ -4148,11 +4150,19 @@ export default function Admin() {
                             className="p-5 rounded-xl border border-white/5 bg-black/40 hover:border-white/10 transition-colors space-y-3 text-left"
                           >
                             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-                              <div>
-                                <span className="text-[10px] uppercase tracking-wider font-semibold text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded mr-2">
+                              <div className="flex items-center flex-wrap gap-2">
+                                <span className="text-[10px] uppercase tracking-wider font-semibold text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded">
                                   {reg.workshopTitle}
                                 </span>
-                                <h4 className="text-sm font-semibold text-white inline-block mt-1 sm:mt-0">
+                                <span className="text-[10px] tracking-wider font-semibold text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                                  {reg.source || "Unknown"}
+                                </span>
+                                <span className={`text-[10px] tracking-wider font-bold uppercase px-2 py-0.5 rounded border ${
+                                  reg.status === "Waitlist Entry" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                }`}>
+                                  {reg.status || "Confirmed Entry"}
+                                </span>
+                                <h4 className="text-sm font-semibold text-white inline-block mt-1 sm:mt-0 w-full md:w-auto">
                                   {reg.name}
                                 </h4>
                               </div>
@@ -4253,6 +4263,8 @@ export default function Admin() {
                                 <th className="p-3.5 border-r border-white/5 font-bold">WhatsApp Mobile</th>
                                 <th className="p-3.5 border-r border-white/5 font-bold">Preferred Batch</th>
                                 <th className="p-3.5 border-r border-white/5 font-bold">Physical Address</th>
+                                <th className="p-3.5 border-r border-white/5 font-bold">Source</th>
+                                <th className="p-3.5 border-r border-white/5 font-bold">Status</th>
                                 {dynamicKeys.map(key => (
                                   <th key={key} className="p-3.5 border-r border-white/5 font-bold">{key}</th>
                                 ))}
@@ -4283,6 +4295,16 @@ export default function Admin() {
                                   </td>
                                   <td className="p-3 border-r border-white/5 text-gray-400 max-w-xs truncate" title={reg.address}>
                                     {reg.address}
+                                  </td>
+                                  <td className="p-3 border-r border-white/5 text-gray-300 font-medium">
+                                    {reg.source || "Unknown"}
+                                  </td>
+                                  <td className="p-3 border-r border-white/5 font-medium">
+                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                      reg.status === "Waitlist Entry" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                    }`}>
+                                      {reg.status || "Confirmed Entry"}
+                                    </span>
                                   </td>
                                   
                                   {dynamicKeys.map(key => {
