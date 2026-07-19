@@ -785,13 +785,19 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                     <CheckCircle size={32} />
                   </div>
                   <div>
-                    <h4 className="text-base font-bold text-white">Invite Request Submitted!</h4>
+                    <h4 className="text-base font-bold text-white">
+                      {selectedForm?.isPaused ? "Registration Closed" : "Invite Request Submitted!"}
+                    </h4>
                     <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                      {selectedForm?.successMessage || selectedWorkshopForReg.regSuccessMessage || (
-                        <>
-                          Your registration for <strong className="text-white">"{selectedWorkshopForReg.title}"</strong> has been securely logged. 
-                          Pradeep Parmar will contact you shortly via Mobile/WhatsApp to coordinate schedules.
-                        </>
+                      {selectedForm?.isPaused ? (
+                        selectedForm.pausedMessage || "Sorry, our entry has been closed. We have stored your details. If any scope or chance, our team will connect you."
+                      ) : (
+                        selectedForm?.successMessage || selectedWorkshopForReg.regSuccessMessage || (
+                          <>
+                            Your registration for <strong className="text-white">"{selectedWorkshopForReg.title}"</strong> has been securely logged. 
+                            Pradeep Parmar will contact you shortly via Mobile/WhatsApp to coordinate schedules.
+                          </>
+                        )
                       )}
                     </p>
                   </div>
@@ -817,7 +823,7 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
                   )}
 
                   <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    {(selectedWorkshopForReg.paymentLink || selectedForm?.paymentLink) ? (
+                    {(!selectedForm?.isPaused && (selectedWorkshopForReg.paymentLink || selectedForm?.paymentLink)) ? (
                       <a 
                         href={selectedWorkshopForReg.paymentLink || selectedForm?.paymentLink}
                         target="_blank"

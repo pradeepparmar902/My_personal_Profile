@@ -174,6 +174,7 @@ export interface RegistrationFormTemplate {
   createdAt: string;
   isHidden?: boolean;
   isPaused?: boolean; // If true, entry is closed but still collects leads
+  pausedMessage?: string; // Custom message to show when paused
   paymentLink?: string; // Razorpay payment link URL
 }
 

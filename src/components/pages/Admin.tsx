@@ -1953,24 +1953,39 @@ export default function Admin() {
                   </div>
 
                   {/* Pause / Waitlist Mode Toggle */}
-                  <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 mt-4">
-                    <div className="pt-0.5">
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={entityForm.isPaused || false}
-                          onChange={(e) => setEntityForm({ ...entityForm, isPaused: e.target.checked })}
+                  <div className="flex flex-col gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 mt-4">
+                    <div className="flex items-start gap-3">
+                      <div className="pt-0.5">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={entityForm.isPaused || false}
+                            onChange={(e) => setEntityForm({ ...entityForm, isPaused: e.target.checked })}
+                          />
+                          <div className="w-9 h-5 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-amber-500 mb-1">Pause Form (Waitlist Mode)</h4>
+                        <p className="text-xs text-gray-400 leading-relaxed">
+                          If enabled, the form will still accept submissions (collecting leads), but the user will see a "Form Closed" message instead of the normal success message, and the payment redirect will be disabled.
+                        </p>
+                      </div>
+                    </div>
+                    {entityForm.isPaused && (
+                      <div className="mt-2 pl-12">
+                        <label className="text-[10px] text-amber-500/80 uppercase font-mono tracking-wider mb-1.5 block">
+                          Custom Paused Message
+                        </label>
+                        <textarea
+                          value={entityForm.pausedMessage || ""}
+                          onChange={(e) => setEntityForm({ ...entityForm, pausedMessage: e.target.value })}
+                          className="w-full px-3 py-2 bg-neutral-900 border border-amber-500/30 rounded-lg text-white placeholder-gray-600 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all text-sm min-h-[80px]"
+                          placeholder="Sorry, our entry has been closed. We have stored your details. If any scope or chance, our team will connect you."
                         />
-                        <div className="w-9 h-5 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                      </label>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-amber-500 mb-1">Pause Form (Waitlist Mode)</h4>
-                      <p className="text-xs text-gray-400 leading-relaxed">
-                        If enabled, the form will still accept submissions (collecting leads), but the user will see a "Form Closed" message instead of the normal success message, and the payment redirect will be disabled.
-                      </p>
-                    </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Reusable Fields Library Panel */}

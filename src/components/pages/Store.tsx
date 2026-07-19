@@ -170,7 +170,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       
       // Handle Pause / Waitlist Mode
       if (selectedForm?.isPaused) {
-        setContactSuccessMsg("Sorry, our entry has been closed. We have stored your details. If any scope or chance, our team will connect you.");
+        setContactSuccessMsg(selectedForm.pausedMessage || "Sorry, our entry has been closed. We have stored your details. If any scope or chance, our team will connect you.");
         return; // Stop here, do not redirect
       }
 
