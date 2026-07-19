@@ -87,12 +87,6 @@ export default function Footer({ setCurrentTab }: FooterProps) {
             <Settings size={12} />
             Manage Content
           </button>
-          
-          <span className="text-gray-600">|</span>
-          
-          <span className="flex items-center gap-1 text-[10px]">
-            Designed with <Sparkles size={10} className="text-[#d4af37]" /> Celebrity Luxe Edition
-          </span>
         </div>
       </div>
     </footer>
