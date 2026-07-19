@@ -195,34 +195,34 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="flex flex-col items-center justify-center gap-4 mt-6 max-w-2xl mx-auto">
+        <div className="flex flex-col items-center justify-center gap-3 mt-4 max-w-2xl mx-auto">
           {/* Search Input */}
-          <div className="relative w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <div className="relative w-full max-w-lg">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
             <input
               type="text"
               placeholder="Search for PDF, Amazon, Books, etc..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-full text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] focus:bg-white/10 outline-none transition-all shadow-inner"
+              className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-full text-white text-xs focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] focus:bg-white/10 outline-none transition-all shadow-inner"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 bg-white/10 hover:bg-white/20 rounded-full text-gray-400 hover:text-white transition-all cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-white/10 hover:bg-white/20 rounded-full text-gray-400 hover:text-white transition-all cursor-pointer"
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             )}
           </div>
 
           {/* Category Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {filterOptions.map((filter) => (
               <button
                 key={filter.id}
                 onClick={() => setActiveFilter(filter.id)}
-                className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 cursor-pointer ${
+                className={`px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all duration-300 cursor-pointer ${
                   activeFilter === filter.id
                     ? 'bg-[#d4af37] text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]'
                     : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/5'
