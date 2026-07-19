@@ -172,11 +172,11 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
               {products.map((product) => (
                 <div key={product.id} className="group rounded-2xl bg-white/[0.02] border border-white/5 hover:border-[#d4af37]/30 transition-all overflow-hidden shadow-lg hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] flex flex-col">
                   {product.imageUrl && (
-                    <div className="aspect-[4/3] w-full overflow-hidden relative">
+                    <div className="aspect-square w-full overflow-hidden relative">
                       <img 
                         src={cleanGoogleDriveUrl(product.imageUrl)} 
                         alt={product.title} 
@@ -185,17 +185,17 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                     </div>
                   )}
-                  <div className="p-6 md:p-8 flex flex-col flex-grow">
-                    <h3 className="text-xl font-bold text-white mb-3 group-hover:text-[#d4af37] transition-colors">{product.title}</h3>
-                    <p className="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">{product.description}</p>
+                  <div className="p-4 flex flex-col flex-grow">
+                    <h3 className="text-sm md:text-base font-bold text-white mb-2 group-hover:text-[#d4af37] transition-colors line-clamp-2">{product.title}</h3>
+                    <p className="text-gray-400 text-xs leading-relaxed mb-4 flex-grow line-clamp-3">{product.description}</p>
                     
-                    <div className="flex items-center justify-between pt-6 border-t border-white/5 mt-auto">
-                      {product.price && <span className="text-lg font-bold text-white">{product.price}</span>}
+                    <div className="flex flex-col gap-2 pt-4 border-t border-white/5 mt-auto">
+                      {product.price && <span className="text-sm font-bold text-white text-center">{product.price}</span>}
                       <button
                         onClick={() => setSelectedProductForContact(product)}
-                        className="px-6 py-2.5 bg-[#d4af37] hover:bg-[#c4a137] text-black font-semibold rounded-full transition-colors flex items-center gap-2 cursor-pointer"
+                        className="w-full justify-center px-4 py-2 bg-[#d4af37] hover:bg-[#c4a137] text-black text-xs font-semibold rounded-full transition-colors flex items-center gap-2 cursor-pointer"
                       >
-                        {product.price ? "Buy Now" : "I am interested book now"}
+                        {product.price ? "Buy Now" : "I am interested"}
                       </button>
                     </div>
                   </div>
@@ -220,17 +220,17 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
               </div>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
               {affiliates.map((aff) => (
                 <a 
                   key={aff.id} 
                   href={aff.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex flex-col sm:flex-row gap-6 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-pink-500/30 p-4 md:p-6 rounded-2xl transition-all"
+                  className="group flex flex-col gap-3 bg-white/[0.01] hover:bg-white/[0.03] border border-white/5 hover:border-pink-500/30 p-3 md:p-4 rounded-2xl transition-all"
                 >
                   {aff.imageUrl && (
-                    <div className="w-full sm:w-40 aspect-square rounded-xl overflow-hidden shrink-0">
+                    <div className="w-full aspect-square rounded-xl overflow-hidden shrink-0">
                       <img 
                         src={cleanGoogleDriveUrl(aff.imageUrl)} 
                         alt={aff.title} 
@@ -238,15 +238,15 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
                       />
                     </div>
                   )}
-                  <div className="flex flex-col justify-center">
+                  <div className="flex flex-col justify-center flex-grow">
                     {aff.platform && (
-                      <span className="text-[10px] font-mono tracking-widest uppercase text-pink-500 mb-2">{aff.platform}</span>
+                      <span className="text-[9px] font-mono tracking-widest uppercase text-pink-500 mb-1.5">{aff.platform}</span>
                     )}
-                    <h3 className="text-lg font-bold text-white mb-2 group-hover:text-pink-400 transition-colors">{aff.title}</h3>
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-3">{aff.description}</p>
+                    <h3 className="text-sm md:text-base font-bold text-white mb-1.5 group-hover:text-pink-400 transition-colors line-clamp-2">{aff.title}</h3>
+                    <p className="text-gray-400 text-xs mb-3 line-clamp-3">{aff.description}</p>
                     {aff.personalNote && (
-                      <div className="bg-pink-500/5 border border-pink-500/10 px-4 py-3 rounded-lg mt-auto">
-                        <p className="text-xs text-pink-200/80 italic line-clamp-2">" {aff.personalNote} "</p>
+                      <div className="bg-pink-500/5 border border-pink-500/10 px-3 py-2 rounded-lg mt-auto">
+                        <p className="text-[10px] text-pink-200/80 italic line-clamp-2">" {aff.personalNote} "</p>
                       </div>
                     )}
                   </div>
