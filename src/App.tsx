@@ -28,6 +28,16 @@ function MainAppContent() {
     return isDeepLinked ? "portfolio" : "home";
   });
   const { loading, profile } = useProfile();
+  
+  // Enforce a minimum delay for the loading screen so branding is visible
+  const [minLoaderDelayDone, setMinLoaderDelayDone] = useState(false);
+  
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinLoaderDelayDone(true);
+    }, 1500); // 1.5 second minimum delay
+    return () => clearTimeout(timer);
+  }, []);
 
   React.useEffect(() => {
     if (profile?.seoDescription) {
@@ -47,7 +57,7 @@ function MainAppContent() {
   }, [profile?.seoDescription]);
 
   // Initial loader layout
-  if (loading) {
+  if (loading || !minLoaderDelayDone) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a]">
         
