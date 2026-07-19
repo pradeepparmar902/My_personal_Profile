@@ -196,7 +196,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       </ScrollReveal>
 
       {/* Sticky Filter & Search Bar */}
-      <div className="sticky top-20 z-40 bg-black/80 backdrop-blur-md py-4 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-white/5 shadow-2xl">
+      <div className="sticky top-[88px] z-40 bg-[#0a0a0a]/90 backdrop-blur-xl py-3 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-white/10 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)]">
         <div className="flex flex-col items-center justify-center gap-3 max-w-2xl mx-auto">
           {/* Search Input */}
           <div className="relative w-full max-w-lg">
