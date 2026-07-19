@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useProfile } from "../../lib/ProfileContext";
 import { cleanGoogleDriveUrl, uploadImageToFirebase } from "../../lib/imageUtils";
-import { ExternalLink, ShoppingBag, Star, Zap, X, Mail, CheckCircle, User, Phone, MapPin, Calendar, List, MessageCircle } from "lucide-react";
+import { ExternalLink, ShoppingBag, Star, Zap, X, Mail, CheckCircle, User, Phone, MapPin, Calendar, List, MessageCircle, Search } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ScrollReveal from "../ui/ScrollReveal";
 import { ResourceItem } from "../../types";
@@ -9,9 +9,21 @@ import { ResourceItem } from "../../types";
 export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) => void }) {
   const { resources, addMessage, registrationForms, addEntity } = useProfile();
   
-  const products = resources.filter(r => r.type === 'product' && !r.isHidden);
-  const affiliates = resources.filter(r => r.type === 'affiliate' && !r.isHidden);
-  const references = resources.filter(r => r.type === 'reference' && !r.isHidden);
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const matchesSearch = (item: ResourceItem) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      (item.title && item.title.toLowerCase().includes(query)) ||
+      (item.description && item.description.toLowerCase().includes(query)) ||
+      (item.platform && item.platform.toLowerCase().includes(query))
+    );
+  };
+
+  const products = resources.filter(r => r.type === 'product' && !r.isHidden && matchesSearch(r));
+  const affiliates = resources.filter(r => r.type === 'affiliate' && !r.isHidden && matchesSearch(r));
+  const references = resources.filter(r => r.type === 'reference' && !r.isHidden && matchesSearch(r));
 
   const [activeFilter, setActiveFilter] = useState("All");
   const filterOptions = [
@@ -165,21 +177,44 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
           </p>
         </div>
 
-        {/* Filter Bar */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
-          {filterOptions.map((filter) => (
-            <button
-              key={filter.id}
-              onClick={() => setActiveFilter(filter.id)}
-              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ${
-                activeFilter === filter.id
-                  ? 'bg-[#d4af37] text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]'
-                  : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/5'
-              }`}
-            >
-              {filter.label}
-            </button>
-          ))}
+        {/* Filter & Search Bar */}
+        <div className="flex flex-col items-center justify-center gap-6 mt-10 max-w-2xl mx-auto">
+          {/* Search Input */}
+          <div className="relative w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search for PDF, Amazon, Books, etc..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-full text-white text-sm focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] focus:bg-white/10 outline-none transition-all shadow-inner"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 bg-white/10 hover:bg-white/20 rounded-full text-gray-400 hover:text-white transition-all cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Category Pills */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {filterOptions.map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setActiveFilter(filter.id)}
+                className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 cursor-pointer ${
+                  activeFilter === filter.id
+                    ? 'bg-[#d4af37] text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                    : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/5'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
         </div>
       </ScrollReveal>
 
