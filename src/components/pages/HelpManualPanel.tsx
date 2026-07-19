@@ -66,6 +66,113 @@ export default function HelpManualPanel({ isOpen, onClose, activeTab, editingTyp
       );
     }
 
+    if (editingType === "achievement") {
+      return (
+        <div className="space-y-6">
+          <Section title="Achievement" icon={<Sparkles size={16} className="text-[#d4af37]" />}>
+            <p>You are editing a milestone or achievement to showcase your expertise.</p>
+          </Section>
+          <Section title="Important Fields" icon={<CheckCircle2 size={16} className="text-[#d4af37]" />}>
+            <ul className="space-y-3">
+              <li><strong className="text-white">Title:</strong> Name of the award, certification, or milestone.</li>
+              <li><strong className="text-white">Category:</strong> Group similar achievements together.</li>
+              <li><strong className="text-white">Cover Image:</strong> Visual proof (like a certificate or badge) increases trust significantly.</li>
+            </ul>
+          </Section>
+        </div>
+      );
+    }
+
+    if (editingType === "skill") {
+      return (
+        <div className="space-y-6">
+          <Section title="Capability / Skill" icon={<Target size={16} className="text-[#d4af37]" />}>
+            <p>Highlight specific tools, frameworks, or soft skills you master.</p>
+          </Section>
+          <Section title="Important Fields" icon={<CheckCircle2 size={16} className="text-[#d4af37]" />}>
+            <ul className="space-y-3">
+              <li><strong className="text-white">Name:</strong> Keep it concise (e.g., "React.js", "Public Speaking").</li>
+              <li><strong className="text-white">Proficiency:</strong> Set a percentage (e.g., 95) to show a visual mastery bar.</li>
+              <li><strong className="text-white">Icon:</strong> Choose an icon that visually represents this skill.</li>
+            </ul>
+          </Section>
+        </div>
+      );
+    }
+
+    if (editingType === "testimonial") {
+      return (
+        <div className="space-y-6">
+          <Section title="Student Review" icon={<BookOpen size={16} className="text-[#d4af37]" />}>
+            <p>Testimonials are the highest form of social proof. A strong testimonial can double your conversion rate.</p>
+          </Section>
+          <Section title="Important Fields" icon={<CheckCircle2 size={16} className="text-[#d4af37]" />}>
+            <ul className="space-y-3">
+              <li><strong className="text-white">Review Text:</strong> Keep it authentic. Highlight specific results they achieved.</li>
+              <li><strong className="text-white">Author & Role:</strong> Giving the reviewer a title (e.g., "Software Engineer @ Google") adds massive weight.</li>
+              <li><strong className="text-white">Avatar:</strong> Upload their photo if possible!</li>
+            </ul>
+          </Section>
+        </div>
+      );
+    }
+
+    if (editingType === "workshop_registration" || editingType === "workshop_registrations") {
+      return (
+        <div className="space-y-6">
+          <Section title="Edit Lead / Registration" icon={<Sparkles size={16} className="text-[#d4af37]" />}>
+            <p>You are manually modifying a lead's record in your CRM database.</p>
+          </Section>
+          <Section title="Usage Scenarios" icon={<Info size={16} className="text-[#d4af37]" />}>
+            <ul className="space-y-3">
+              <li><strong className="text-white">Status Updates:</strong> Change their status from "Waitlist Entry" to "Confirmed Entry" if they paid.</li>
+              <li><strong className="text-white">Corrections:</strong> Fix a typo in their email or phone number if they entered it wrong.</li>
+              <li><strong className="text-white">Internal Notes:</strong> Add context to the "Additional Info" field if you had a sales call with them.</li>
+            </ul>
+          </Section>
+        </div>
+      );
+    }
+
+    if (editingType === "position_type" || editingType === "project_category" || editingType === "achievement_category") {
+      return (
+        <div className="space-y-6">
+          <Section title="Category Management" icon={<BookOpen size={16} className="text-[#d4af37]" />}>
+            <p>You are editing a structural category used to group your content on the front-end.</p>
+          </Section>
+          <AlertBox>Changing the name of a category will automatically apply to all items currently in that category.</AlertBox>
+        </div>
+      );
+    }
+
+    if (editingType === "position") {
+      return (
+        <div className="space-y-6">
+          <Section title="Affiliation / Position" icon={<Target size={16} className="text-[#d4af37]" />}>
+            <p>You are editing a leadership role, community position, or brand affiliation.</p>
+          </Section>
+          <Section title="Fields" icon={<CheckCircle2 size={16} className="text-[#d4af37]" />}>
+            <ul className="space-y-3">
+              <li><strong className="text-white">Position Type:</strong> Grouping (e.g., "Board Member", "Volunteer").</li>
+              <li><strong className="text-white">Organization:</strong> Name of the entity you are affiliated with.</li>
+              <li><strong className="text-white">Role:</strong> Your specific title.</li>
+            </ul>
+          </Section>
+        </div>
+      );
+    }
+
+    if (editingType === "messages") {
+      return (
+        <div className="space-y-6">
+          <Section title="Edit Contact Message" icon={<Info size={16} className="text-[#d4af37]" />}>
+            <p>You are viewing or modifying a direct inquiry sent from your contact form.</p>
+          </Section>
+          <AlertBox>Usually, you only need to view this data or delete spam. Modifying it is rarely necessary unless adding internal notes.</AlertBox>
+        </div>
+      );
+    }
+
     // TAB CONTEXTS (When not editing a specific item)
     switch (activeTab) {
       case "profile":
@@ -82,6 +189,20 @@ export default function HelpManualPanel({ isOpen, onClose, activeTab, editingTyp
               </ul>
             </Section>
             <AlertBox>Any changes here save instantly when you click the "Save Profile Configurations" button at the very bottom.</AlertBox>
+          </div>
+        );
+      case "about":
+        return (
+          <div className="space-y-6">
+            <Section title="About Page Config" icon={<Info size={16} className="text-[#d4af37]" />}>
+              <p>Customize your personal biography and background story.</p>
+            </Section>
+            <Section title="Tips" icon={<Sparkles size={16} className="text-[#d4af37]" />}>
+              <ul className="space-y-3">
+                <li><strong className="text-white">Biography:</strong> Use short paragraphs. A wall of text is hard to read.</li>
+                <li><strong className="text-white">Images:</strong> Provide high-quality URLs for your profile and cover background.</li>
+              </ul>
+            </Section>
           </div>
         );
       case "registrations":
@@ -122,6 +243,102 @@ export default function HelpManualPanel({ isOpen, onClose, activeTab, editingTyp
             </Section>
             <Section title="QR Codes & Links" icon={<Target size={16} className="text-[#d4af37]" />}>
               <p>Once you create a form, click the <strong>"Settings / Share"</strong> button on it to get a custom QR Code and a direct URL to send to students.</p>
+            </Section>
+          </div>
+        );
+      case "store":
+        return (
+          <div className="space-y-6">
+            <Section title="Store & Resources" icon={<BookOpen size={16} className="text-[#d4af37]" />}>
+              <p>Manage digital products, PDFs, and downloadable assets.</p>
+            </Section>
+            <AlertBox>This section handles direct purchases and file deliveries. Make sure you set pricing and payment links correctly.</AlertBox>
+          </div>
+        );
+      case "experiences":
+        return (
+          <div className="space-y-6">
+            <Section title="Career History" icon={<Info size={16} className="text-[#d4af37]" />}>
+              <p>Your timeline of professional roles.</p>
+            </Section>
+            <Section title="Management" icon={<CheckCircle2 size={16} className="text-[#d4af37]" />}>
+              <p>Drag and drop items to reorder them on the timeline. Keep your most relevant and impressive roles near the top or mark them as current.</p>
+            </Section>
+          </div>
+        );
+      case "skills":
+        return (
+          <div className="space-y-6">
+            <Section title="Capabilities / Skills" icon={<Target size={16} className="text-[#d4af37]" />}>
+              <p>Your technical stack and core competencies.</p>
+            </Section>
+            <Section title="Strategy" icon={<Sparkles size={16} className="text-[#d4af37]" />}>
+              <p>Don't list everything. List the high-value skills that your target audience or potential clients are actively looking for.</p>
+            </Section>
+          </div>
+        );
+      case "testimonials":
+        return (
+          <div className="space-y-6">
+            <Section title="Student Reviews" icon={<Info size={16} className="text-[#d4af37]" />}>
+              <p>Manage the social proof displayed on your site.</p>
+            </Section>
+            <Section title="Action" icon={<CheckCircle2 size={16} className="text-[#d4af37]" />}>
+              <p>Add new reviews here as they come in. If someone sends you a WhatsApp message praising your workshop, ask them if you can feature it here!</p>
+            </Section>
+          </div>
+        );
+      case "achievements":
+        return (
+          <div className="space-y-6">
+            <Section title="Achievements" icon={<Target size={16} className="text-[#d4af37]" />}>
+              <p>Showcase milestones, awards, and certifications.</p>
+            </Section>
+            <Section title="Structure" icon={<CheckCircle2 size={16} className="text-[#d4af37]" />}>
+              <p>First, create Categories (e.g., "Certifications", "Awards"), then add specific Achievements under those categories to keep them organized.</p>
+            </Section>
+          </div>
+        );
+      case "affiliations":
+        return (
+          <div className="space-y-6">
+            <Section title="Affiliations & Positions" icon={<Sparkles size={16} className="text-[#d4af37]" />}>
+              <p>Highlight your leadership roles, board positions, or community involvement.</p>
+            </Section>
+            <AlertBox>This adds a distinct layer of authority beyond just "jobs" (Career History) and shows you are active in the industry.</AlertBox>
+          </div>
+        );
+      case "inbox":
+        return (
+          <div className="space-y-6">
+            <Section title="Contact Inbox" icon={<Info size={16} className="text-[#d4af37]" />}>
+              <p>A log of all direct messages sent through your website's main Contact page.</p>
+            </Section>
+            <Section title="Management" icon={<CheckCircle2 size={16} className="text-[#d4af37]" />}>
+              <p>You can read messages and delete spam here. Remember to reply to these inquiries via your actual email client using the provided email address!</p>
+            </Section>
+          </div>
+        );
+      case "navigation":
+        return (
+          <div className="space-y-6">
+            <Section title="Site Navigation" icon={<Target size={16} className="text-[#d4af37]" />}>
+              <p>Control the main header navigation menu of your front-end website.</p>
+            </Section>
+            <AlertBox>You can drag to reorder the tabs, or click the eye icon to completely hide a tab from the public while you work on it.</AlertBox>
+          </div>
+        );
+      case "system":
+        return (
+          <div className="space-y-6">
+            <Section title="System Controls" icon={<Info size={16} className="text-[#d4af37]" />}>
+              <p>Advanced administrative functions.</p>
+            </Section>
+            <Section title="DANGER ZONE" icon={<AlertCircle size={16} className="text-amber-400" />}>
+              <ul className="space-y-3">
+                <li><strong className="text-white">Master Reset:</strong> Will WIPE your current data and replace it with dummy data. Do not click unless you are testing!</li>
+                <li><strong className="text-white">Export:</strong> Generates a full JSON backup of everything. Do this regularly!</li>
+              </ul>
             </Section>
           </div>
         );
