@@ -13,6 +13,14 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
   const affiliates = resources.filter(r => r.type === 'affiliate' && !r.isHidden);
   const references = resources.filter(r => r.type === 'reference' && !r.isHidden);
 
+  const [activeFilter, setActiveFilter] = useState("All");
+  const filterOptions = [
+    { id: "All", label: "All Items" },
+    { id: "Products", label: "Premium Materials" },
+    { id: "Affiliates", label: "Recommended Gear" },
+    { id: "References", label: "Trusted Tools" }
+  ];
+
   const [selectedProductForContact, setSelectedProductForContact] = useState<ResourceItem | null>(null);
   
   // Standard Form State
@@ -156,10 +164,27 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
             Explore my premium materials, highly recommended tools, and essential resources to accelerate your journey.
           </p>
         </div>
+
+        {/* Filter Bar */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
+          {filterOptions.map((filter) => (
+            <button
+              key={filter.id}
+              onClick={() => setActiveFilter(filter.id)}
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ${
+                activeFilter === filter.id
+                  ? 'bg-[#d4af37] text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                  : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/5'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
       </ScrollReveal>
 
       {/* SECTION 1: MY PRODUCTS */}
-      {products.length > 0 && (
+      {products.length > 0 && (activeFilter === "All" || activeFilter === "Products") && (
         <ScrollReveal delay={0.2}>
           <div className="space-y-12">
             <div className="flex items-center gap-4">
@@ -207,7 +232,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       )}
 
       {/* SECTION 2: AFFILIATES */}
-      {affiliates.length > 0 && (
+      {affiliates.length > 0 && (activeFilter === "All" || activeFilter === "Affiliates") && (
         <ScrollReveal delay={0.3}>
           <div className="space-y-12">
             <div className="flex items-center gap-4">
@@ -261,7 +286,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       )}
 
       {/* SECTION 3: REFERENCES */}
-      {references.length > 0 && (
+      {references.length > 0 && (activeFilter === "All" || activeFilter === "References") && (
         <ScrollReveal delay={0.4}>
           <div className="space-y-12">
             <div className="flex items-center gap-4">
