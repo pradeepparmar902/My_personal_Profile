@@ -193,9 +193,11 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
             Explore my premium materials, highly recommended tools, and essential resources to accelerate your journey.
           </p>
         </div>
+      </ScrollReveal>
 
-        {/* Filter & Search Bar */}
-        <div className="flex flex-col items-center justify-center gap-3 mt-4 max-w-2xl mx-auto">
+      {/* Sticky Filter & Search Bar */}
+      <div className="sticky top-20 z-40 bg-black/80 backdrop-blur-md py-4 -mx-4 px-4 md:-mx-6 md:px-6 border-b border-white/5 shadow-2xl">
+        <div className="flex flex-col items-center justify-center gap-3 max-w-2xl mx-auto">
           {/* Search Input */}
           <div className="relative w-full max-w-lg">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
@@ -233,7 +235,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
             ))}
           </div>
         </div>
-      </ScrollReveal>
+      </div>
 
       {/* DYNAMIC SECTIONS */}
       {uniqueCategories.map((category, idx) => {
