@@ -800,7 +800,7 @@ export default function Admin() {
             Security Mode Enabled
           </span>
           <h2 className="text-2xl font-serif font-bold text-white mt-1">
-            Dynamic CMS Portal
+    Dynamic CMS Portal
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
             Manage your personal bio, active workshops, milestones, leadership profiles, and contact inquiries.
@@ -808,23 +808,6 @@ export default function Admin() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleForceReset}
-            disabled={resetting}
-            className="px-4 py-2 text-xs font-semibold rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/25 transition-all flex items-center gap-1.5 cursor-pointer shadow-lg"
-          >
-            {resetting ? (
-              <>
-                <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-                Resetting...
-              </>
-            ) : (
-              <>
-                <Database size={12} />
-                Master Reset (Fallback Data)
-              </>
-            )}
-          </button>
           <div className="flex gap-2">
             <button
               onClick={() => setIsHelpPanelOpen(true)}
@@ -5118,6 +5101,10 @@ export default function Admin() {
                 </div>
               )}
             </>
+          )}
+
+          {activeTab === "system" && !editingType && (
+            <UserManualEditor />
           )}
         </div>
       </div>
