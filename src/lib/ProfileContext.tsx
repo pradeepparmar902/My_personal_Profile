@@ -239,7 +239,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           if (regsSnap) {
             const regsList: WorkshopRegistration[] = [];
             regsSnap.forEach((d) => regsList.push({ ...d.data(), id: d.id } as WorkshopRegistration));
-            regsList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            regsList.sort((a, b) => {
+              const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return timeB - timeA;
+            });
             setWorkshopRegistrations(regsList);
           }
         })(),

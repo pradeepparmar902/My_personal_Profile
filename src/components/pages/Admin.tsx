@@ -4163,7 +4163,21 @@ export default function Admin() {
                             {uniqueValues.map(val => {
                               const isChecked = (columnFilters[field] || []).includes(val);
                               return (
-                                <label key={val} className="flex items-center gap-2 px-1.5 py-1 hover:bg-white/5 rounded cursor-pointer group/item">
+                                <label 
+                                  key={val} 
+                                  className="flex items-center gap-2 px-1.5 py-1 hover:bg-white/5 rounded cursor-pointer group/item"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setColumnFilters(prev => {
+                                      const active = prev[field] || [];
+                                      if (active.includes(val)) {
+                                        return { ...prev, [field]: active.filter(v => v !== val) };
+                                      } else {
+                                        return { ...prev, [field]: [...active, val] };
+                                      }
+                                    });
+                                  }}
+                                >
                                   <div className={`w-3 h-3 rounded flex items-center justify-center border transition-colors ${isChecked ? "bg-[#d4af37] border-[#d4af37]" : "border-white/20 group-hover/item:border-white/40"}`}>
                                     {isChecked && <Check size={9} className="text-black" />}
                                   </div>
