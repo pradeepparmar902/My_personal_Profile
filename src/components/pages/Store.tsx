@@ -73,6 +73,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
 
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [contactSuccessMsg, setContactSuccessMsg] = useState("");
   const [contactError, setContactError] = useState<string | null>(null);
 
   const selectedForm = selectedProductForContact?.registrationFormId && registrationForms 
@@ -167,11 +168,21 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       setContactForm({ name: "", email: "", mobile: "", message: "" });
       setDynamicAnswers({});
       
+      // Handle Pause / Waitlist Mode
+      if (selectedForm?.isPaused) {
+        setContactSuccessMsg("Sorry, our entry has been closed. We have stored your details. If any scope or chance, our team will connect you.");
+        return; // Stop here, do not redirect
+      }
+
       const redirectUrl = selectedProductForContact?.link || selectedProductForContact?.externalAppUrl;
+      
       if (redirectUrl) {
+        setContactSuccessMsg("Redirecting you to the next step...");
         setTimeout(() => {
           window.location.href = redirectUrl;
         }, 1500);
+      } else {
+        setContactSuccessMsg(selectedForm?.successMessage || "Message sent successfully!");
       }
 
     } catch (err) {
@@ -434,21 +445,19 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
                       <Star className="text-[#d4af37]" size={32} />
                     </div>
                     <h3 className="text-2xl font-serif font-bold text-white">
-                      {selectedProductForContact?.link ? "Registration Successful!" : (selectedForm?.successMessage || "Message Sent!")}
+                      {selectedForm?.isPaused 
+                        ? "Registration Closed" 
+                        : (selectedProductForContact?.link ? "Registration Successful!" : "Message Sent!")}
                     </h3>
                     <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto">
-                      {selectedProductForContact?.link 
-                        ? "Redirecting you to the next step..." 
-                        : `Thank you for your interest in "${selectedProductForContact.title}". I'll get back to you shortly.`}
+                      {contactSuccessMsg}
                     </p>
-                    {!selectedProductForContact?.link && (
                       <button
                         onClick={closeContactModal}
                         className="mt-6 px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors"
                       >
                         Close Window
                       </button>
-                    )}
                   </div>
                 ) : (
                   <form onSubmit={handleContactSubmit} className="space-y-4 text-left">

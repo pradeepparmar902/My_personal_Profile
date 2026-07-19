@@ -1952,6 +1952,27 @@ export default function Admin() {
                     </p>
                   </div>
 
+                  {/* Pause / Waitlist Mode Toggle */}
+                  <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 mt-4">
+                    <div className="pt-0.5">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={entityForm.isPaused || false}
+                          onChange={(e) => setEntityForm({ ...entityForm, isPaused: e.target.checked })}
+                        />
+                        <div className="w-9 h-5 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                      </label>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-amber-500 mb-1">Pause Form (Waitlist Mode)</h4>
+                      <p className="text-xs text-gray-400 leading-relaxed">
+                        If enabled, the form will still accept submissions (collecting leads), but the user will see a "Form Closed" message instead of the normal success message, and the payment redirect will be disabled.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Reusable Fields Library Panel */}
                   <div className="bg-neutral-950 p-4 rounded-xl border border-white/5 space-y-4 text-left">
                     <div className="flex items-center gap-2 border-b border-white/5 pb-2">

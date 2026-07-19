@@ -173,6 +173,7 @@ export interface RegistrationFormTemplate {
   fields: FormField[];
   createdAt: string;
   isHidden?: boolean;
+  isPaused?: boolean; // If true, entry is closed but still collects leads
   paymentLink?: string; // Razorpay payment link URL
 }
 
