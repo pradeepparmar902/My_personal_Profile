@@ -781,27 +781,37 @@ export default function Portfolio({ setCurrentTab }: PortfolioProps) {
             <div className="p-6 space-y-4">
               {submitSuccess ? (
                 <div className="text-center py-6 space-y-4">
-                  <div className="mx-auto w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                    <CheckCircle size={32} />
-                  </div>
-                  <div>
-                    <h4 className="text-base font-bold text-white">
-                      {selectedForm?.isPaused ? "Registration Closed" : "Invite Request Submitted!"}
-                    </h4>
-                    <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                      {selectedForm?.isPaused ? (
-                        selectedForm.pausedMessage || "Sorry, our entry has been closed. We have stored your details. If any scope or chance, our team will connect you."
-                      ) : (
-                        selectedForm?.successMessage || selectedWorkshopForReg.regSuccessMessage || (
-                          <>
-                            Your registration for <strong className="text-white">"{selectedWorkshopForReg.title}"</strong> has been securely logged. 
-                            Pradeep Parmar will contact you shortly via Mobile/WhatsApp to coordinate schedules.
-                          </>
-                        )
-                      )}
-                    </p>
-                  </div>
-
+                  {selectedForm?.isPaused ? (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-500/20 blur-3xl rounded-full"></div>
+                      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-red-500/20 blur-3xl rounded-full"></div>
+                      
+                      <div className="text-5xl mb-3 relative z-10 animate-bounce">🥺</div>
+                      <h4 className="text-xl font-bold text-red-400 mb-3 relative z-10">
+                        Registration Closed!
+                      </h4>
+                      <p className="text-red-200/90 text-xs md:text-sm leading-relaxed relative z-10 font-medium bg-red-950/40 p-3 rounded-xl border border-red-500/20">
+                        {selectedForm.pausedMessage || "Sorry, our entry has been closed. We have stored your details. If any scope or chance, our team will connect you."}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mx-auto w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <CheckCircle size={32} />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-bold text-white">Invite Request Submitted!</h4>
+                        <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                          {selectedForm?.successMessage || selectedWorkshopForReg.regSuccessMessage || (
+                            <>
+                              Your registration for <strong className="text-white">"{selectedWorkshopForReg.title}"</strong> has been securely logged. 
+                              Pradeep Parmar will contact you shortly via Mobile/WhatsApp to coordinate schedules.
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </>
+                  )}
                   {selectedWorkshopForReg.whatsappGroupLink && (
                     <div className="p-4 rounded-xl bg-[#25d366]/5 border border-[#25d366]/20 space-y-2.5 my-2 animate-fadeIn text-left">
                       <span className="text-[10px] font-mono font-semibold tracking-wider uppercase text-[#25d366] block text-center">
