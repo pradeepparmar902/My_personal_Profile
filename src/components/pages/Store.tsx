@@ -193,7 +193,7 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-20 px-4 md:px-6 max-w-7xl mx-auto space-y-12 md:space-y-16 relative">
+    <div className="min-h-screen pt-20 pb-20 px-4 md:px-6 max-w-7xl mx-auto space-y-6 md:space-y-8 relative">
       
       {/* Header Section */}
       <ScrollReveal>
