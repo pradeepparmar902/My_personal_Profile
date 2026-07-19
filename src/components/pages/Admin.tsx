@@ -849,7 +849,7 @@ export default function Admin() {
               { id: "achievements", label: "Achievements", icon: Trophy },
               { id: "positions", label: "Affiliations", icon: Link2 },
               { id: "messages", label: "Contact Inbox", icon: Mail },
-              { id: "registrations", label: "Workshop Invites", icon: Calendar },
+              { id: "registrations", label: "Leads & Registrations", icon: Calendar },
               { id: "navigation", label: "Site Navigation", icon: List },
               { id: "system", label: "System Controls", icon: Sliders },
             ].map((tab) => {
@@ -3226,7 +3226,7 @@ export default function Admin() {
                       </li>
                     </ol>
                     <p className="text-[11px] text-amber-400/90 font-mono mt-1">
-                      💡 All attendee registrations will immediately land in your new <strong className="text-white">"Workshop Invites"</strong> tab on the sidebar.
+                      💡 All attendee registrations will immediately land in your new <strong className="text-white">"Leads & Registrations"</strong> tab on the sidebar.
                     </p>
                   </div>
 
