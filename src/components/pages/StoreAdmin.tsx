@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { useProfile } from "../../lib/ProfileContext";
 import { ResourceItem } from "../../types";
-import { Plus, Edit, Trash2, Link as LinkIcon, ShoppingCart, Info, Eye, EyeOff, Save, X } from "lucide-react";
+import { Plus, Edit, Trash2, Link as LinkIcon, ShoppingCart, Info, Eye, EyeOff, Save, X, ArrowUpDown } from "lucide-react";
 import ImageUploader from "../ui/ImageUploader";
 import { cleanGoogleDriveUrl } from "../../lib/imageUtils";
+import StoreReorderAdmin from "./StoreReorderAdmin";
 
 export default function StoreAdmin() {
   const { resources, addResource, updateResource, deleteResource, registrationForms } = useProfile();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isReorderMode, setIsReorderMode] = useState(false);
   
   const [formData, setFormData] = useState<Partial<ResourceItem>>({
     type: 'product',
@@ -295,6 +297,10 @@ export default function StoreAdmin() {
     resources.map(r => r.category).filter(Boolean) as string[]
   ));
 
+  if (isReorderMode) {
+    return <StoreReorderAdmin onClose={() => setIsReorderMode(false)} />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b border-white/5 pb-4">
@@ -306,13 +312,22 @@ export default function StoreAdmin() {
           <p className="text-sm text-gray-400 mt-1">Manage your products, affiliate links, and trusted references.</p>
         </div>
         {!editingId && (
-          <button
-            onClick={handleAddNew}
-            className="flex items-center gap-2 px-4 py-2 bg-[#d4af37] hover:bg-[#c4a137] text-black rounded-lg text-sm font-semibold transition-colors"
-          >
-            <Plus size={16} />
-            Add New Item
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsReorderMode(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              <ArrowUpDown size={16} />
+              Reorder
+            </button>
+            <button
+              onClick={handleAddNew}
+              className="flex items-center gap-2 px-4 py-2 bg-[#d4af37] hover:bg-[#c4a137] text-black rounded-lg text-sm font-semibold transition-colors"
+            >
+              <Plus size={16} />
+              Add New Item
+            </button>
+          </div>
         )}
       </div>
 

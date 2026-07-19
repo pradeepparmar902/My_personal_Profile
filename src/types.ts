@@ -27,6 +27,7 @@ export interface Profile {
   aboutAvatarUrl?: string;
   highlights?: { title: string; description: string }[];
   skillCategoryOrder?: string[];
+  storeCategoryOrder?: string[];
   coachingHours?: string;
   navConfig?: NavItemConfig[];
   seoDescription?: string;

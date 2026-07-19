@@ -7,7 +7,7 @@ import ScrollReveal from "../ui/ScrollReveal";
 import { ResourceItem } from "../../types";
 
 export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) => void }) {
-  const { resources, addMessage, registrationForms, addEntity } = useProfile();
+  const { resources, addMessage, registrationForms, addEntity, profile } = useProfile();
   
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -41,7 +41,19 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
     categoriesMap.get(catName)!.push(r);
   });
   
-  const uniqueCategories = Array.from(categoriesMap.keys()).sort();
+  // Sort items within each category
+  categoriesMap.forEach((items, key) => {
+    items.sort((a, b) => (a.order || 0) - (b.order || 0));
+  });
+  
+  const uniqueCategories = Array.from(categoriesMap.keys()).sort((a, b) => {
+    const orderA = profile?.storeCategoryOrder?.indexOf(a) ?? -1;
+    const orderB = profile?.storeCategoryOrder?.indexOf(b) ?? -1;
+    if (orderA === -1 && orderB === -1) return a.localeCompare(b);
+    if (orderA === -1) return 1;
+    if (orderB === -1) return -1;
+    return orderA - orderB;
+  });
 
   const [activeFilter, setActiveFilter] = useState("All");
   
