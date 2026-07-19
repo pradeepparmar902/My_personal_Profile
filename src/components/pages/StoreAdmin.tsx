@@ -113,7 +113,7 @@ export default function StoreAdmin() {
 
         <div>
           <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">
-            {formData.type === 'product' ? 'Payment / Checkout Link (e.g. Razorpay)' : 
+            {formData.type === 'product' ? 'Payment / Checkout / External App Link' : 
              formData.type === 'affiliate' ? 'Affiliate Link' : 'Website URL'}
              {formData.allowRegistration && " (Optional if Registration is enabled)"}
           </label>
