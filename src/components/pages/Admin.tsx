@@ -1044,7 +1044,7 @@ export default function Admin() {
                           Enable Custom Registration / Invite Form
                         </label>
                       </div>
-                      
+
                       <div className="space-y-1">
                         <label className="text-[10px] text-gray-400 uppercase tracking-wider font-mono">Workshop Date / Schedule</label>
                         <input
