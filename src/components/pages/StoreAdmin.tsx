@@ -20,7 +20,8 @@ export default function StoreAdmin() {
     personalNote: '',
     isHidden: false,
     allowRegistration: false,
-    registrationFormId: ''
+    registrationFormId: '',
+    externalAppUrl: ''
   });
 
   const handleEdit = (item: ResourceItem) => {
@@ -41,7 +42,8 @@ export default function StoreAdmin() {
       personalNote: '',
       isHidden: false,
       allowRegistration: false,
-      registrationFormId: ''
+      registrationFormId: '',
+      externalAppUrl: ''
     });
   };
 
@@ -113,18 +115,34 @@ export default function StoreAdmin() {
 
         <div>
           <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">
-            {formData.type === 'product' ? 'Payment / Checkout / External App Link' : 
+            {formData.type === 'product' ? 'Payment / Checkout Link (e.g. Razorpay)' : 
              formData.type === 'affiliate' ? 'Affiliate Link' : 'Website URL'}
-             {formData.allowRegistration && " (Optional if Registration is enabled)"}
+             {formData.allowRegistration && formData.type === 'product' && " (Leave blank if free)"}
           </label>
           <input
             type="url"
-            required={!formData.allowRegistration}
-            value={formData.link || ""}
+            value={formData.link || ''}
             onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-            className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white"
+            placeholder="https://"
+            className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none mt-1"
           />
         </div>
+
+        {formData.type === 'product' && (
+          <div>
+            <label className="text-[10px] text-gray-400 uppercase tracking-widest font-mono">
+              External App / Navigation Link (Post-Registration)
+            </label>
+            <input
+              type="url"
+              value={formData.externalAppUrl || ''}
+              onChange={(e) => setFormData({ ...formData, externalAppUrl: e.target.value })}
+              placeholder="https://my-other-app.com"
+              className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-lg text-white text-sm focus:border-[#d4af37] outline-none mt-1"
+            />
+            <p className="text-[10px] text-gray-500 mt-1">If a payment link is provided above, you must configure this redirect inside your Payment Gateway (e.g. Razorpay Settings). If no payment link is provided, we will automatically redirect users here after they register.</p>
+          </div>
+        )}
 
         {formData.type === 'product' && (
           <div>

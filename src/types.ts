@@ -196,6 +196,7 @@ export interface ResourceItem {
   description: string;
   imageUrl?: string;
   link?: string;
+  externalAppUrl?: string;
   price?: string;
   platform?: string;
   personalNote?: string;

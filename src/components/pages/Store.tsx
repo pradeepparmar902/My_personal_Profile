@@ -118,9 +118,10 @@ export default function Store({ setCurrentTab }: { setCurrentTab: (tab: string) 
       setContactForm({ name: "", email: "", mobile: "", message: "" });
       setDynamicAnswers({});
       
-      if (selectedProductForContact?.link) {
+      const redirectUrl = selectedProductForContact?.link || selectedProductForContact?.externalAppUrl;
+      if (redirectUrl) {
         setTimeout(() => {
-          window.location.href = selectedProductForContact.link!;
+          window.location.href = redirectUrl;
         }, 1500);
       }
 
