@@ -62,7 +62,6 @@ import {
   ChevronDown,
   ChevronUp,
   BarChart3,
-  Users,
   BookText
 } from "lucide-react";
 import HelpManualPanel from "./HelpManualPanel";
