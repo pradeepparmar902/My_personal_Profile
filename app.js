@@ -31,6 +31,45 @@ const server = http.createServer((req, res) => {
     __dirname
   ];
 
+  // API Endpoint to upload proposal HTML directly to server disk
+  if (req.method === 'POST' && urlPath === '/api/upload-proposal') {
+    let bodyData = '';
+    req.on('data', chunk => bodyData += chunk);
+    req.on('end', () => {
+      try {
+        const { filename, htmlContent } = JSON.parse(bodyData);
+        if (!filename || !htmlContent) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'filename and htmlContent are required' }));
+          return;
+        }
+
+        const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+        for (const distPath of possibleDistPaths) {
+          const proposalsDir = path.join(distPath, 'proposals');
+          if (!fs.existsSync(proposalsDir)) {
+            try { fs.mkdirSync(proposalsDir, { recursive: true }); } catch (e) {}
+          }
+          const targetFile = path.join(proposalsDir, safeName);
+          try { fs.writeFileSync(targetFile, htmlContent, 'utf8'); } catch (e) {}
+        }
+
+        const publicProposalsDir = path.join(__dirname, 'public', 'proposals');
+        if (fs.existsSync(path.join(__dirname, 'public'))) {
+          if (!fs.existsSync(publicProposalsDir)) try { fs.mkdirSync(publicProposalsDir, { recursive: true }); } catch (e) {}
+          try { fs.writeFileSync(path.join(publicProposalsDir, safeName), htmlContent, 'utf8'); } catch (e) {}
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, url: `/proposals/${safeName}` }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   if (urlPath === '/debug') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     try {

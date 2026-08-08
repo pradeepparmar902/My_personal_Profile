@@ -90,7 +90,6 @@ export default function Proposals() {
 
   useEffect(() => {
     try {
-      // Save metadata only to localStorage (avoids quota exceeded error)
       const cleanMeta = proposals.map(({ id, filename, title, description, imageUrl, date }) => ({
         id, filename, title, description, imageUrl, date
       }));
@@ -132,7 +131,6 @@ export default function Proposals() {
                        doc.querySelector("img")?.getAttribute("src") ||
                        "./logo-white.png";
 
-        // Truncate excessively long base64 image strings in metadata preview to keep local storage lightweight
         if (imageUrl.startsWith("data:image") && imageUrl.length > 50000) {
           const firstImgInDoc = doc.querySelector(".note-content img");
           if (firstImgInDoc && firstImgInDoc.getAttribute("src") && !firstImgInDoc.getAttribute("src")?.startsWith("data:")) {
@@ -142,10 +140,22 @@ export default function Proposals() {
           }
         }
 
-        const cleanFilename = file.name.replace(/[<>:"/\\|?*]+/g, "_");
+        // Clean filename (replaces spaces with underscores to prevent WhatsApp link truncation)
+        const cleanFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const propId = "prop-" + Date.now();
 
-        // 1. Store full heavy HTML file in IndexedDB safely (no size limit)
+        // 1. Store file on Hostinger server disk via API endpoint
+        try {
+          await fetch('/api/upload-proposal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: cleanFilename, htmlContent: content })
+          });
+        } catch (apiErr) {
+          console.warn("Server disk upload fallback:", apiErr);
+        }
+
+        // 2. Store full heavy HTML file in IndexedDB safely
         await saveFileToIndexedDB(propId, content);
 
         const newProposal: ProposalItem = {
@@ -176,8 +186,8 @@ export default function Proposals() {
 
   const handleShareWhatsApp = (item: ProposalItem) => {
     const url = getProposalUrl(item);
-    const text = encodeURIComponent(`*${item.title}*\n${item.description}\n\n👉 View Interactive Proposal: ${url}`);
-    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+    // Send URL directly so WhatsApp scrapers load full visual card
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(url)}`, "_blank");
   };
 
   const handleCopyLink = (item: ProposalItem) => {
@@ -188,7 +198,6 @@ export default function Proposals() {
   };
 
   const handleOpenProposal = async (item: ProposalItem) => {
-    // Attempt to load from IndexedDB first
     const dbContent = await getFileFromIndexedDB(item.id);
     if (dbContent) {
       const blob = new Blob([dbContent], { type: "text/html" });
