@@ -37,7 +37,7 @@ const server = http.createServer((req, res) => {
     req.on('data', chunk => bodyData += chunk);
     req.on('end', () => {
       try {
-        const { filename, htmlContent } = JSON.parse(bodyData);
+        const { filename, htmlContent, imageBase64 } = JSON.parse(bodyData);
         if (!filename || !htmlContent) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'filename and htmlContent are required' }));
@@ -45,6 +45,18 @@ const server = http.createServer((req, res) => {
         }
 
         const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const coverName = safeName.replace(/\.html?$/i, '') + '-cover.png';
+        
+        let imgBuffer = null;
+        if (imageBase64) {
+          try {
+            const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+            imgBuffer = Buffer.from(base64Data, 'base64');
+          } catch (e) {
+            console.error('Error parsing base64 image', e);
+          }
+        }
+
         for (const distPath of possibleDistPaths) {
           const proposalsDir = path.join(distPath, 'proposals');
           if (!fs.existsSync(proposalsDir)) {
@@ -52,12 +64,19 @@ const server = http.createServer((req, res) => {
           }
           const targetFile = path.join(proposalsDir, safeName);
           try { fs.writeFileSync(targetFile, htmlContent, 'utf8'); } catch (e) {}
+          
+          if (imgBuffer) {
+            try { fs.writeFileSync(path.join(proposalsDir, coverName), imgBuffer); } catch (e) {}
+          }
         }
 
         const publicProposalsDir = path.join(__dirname, 'public', 'proposals');
         if (fs.existsSync(path.join(__dirname, 'public'))) {
           if (!fs.existsSync(publicProposalsDir)) try { fs.mkdirSync(publicProposalsDir, { recursive: true }); } catch (e) {}
           try { fs.writeFileSync(path.join(publicProposalsDir, safeName), htmlContent, 'utf8'); } catch (e) {}
+          if (imgBuffer) {
+            try { fs.writeFileSync(path.join(publicProposalsDir, coverName), imgBuffer); } catch (e) {}
+          }
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });

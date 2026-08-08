@@ -143,13 +143,22 @@ export default function Proposals() {
         // Clean filename (replaces spaces with underscores to prevent WhatsApp link truncation)
         const cleanFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const propId = "prop-" + Date.now();
+        
+        let imageBase64 = null;
+        let finalHtmlContent = content;
+        const ogImageMatch = content.match(/<meta\s+property=["']og:image["']\s+content=["'](data:image\/[^"']+)["']/i);
+        if (ogImageMatch) {
+            imageBase64 = ogImageMatch[1];
+            const coverFilename = cleanFilename.replace(/\.html?$/i, "") + "-cover.png";
+            finalHtmlContent = content.replace(imageBase64, `https://pradeepparmar.com/proposals/${coverFilename}`);
+        }
 
         // 1. Store file on Hostinger server disk via API endpoint
         try {
           await fetch('/api/upload-proposal', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: cleanFilename, htmlContent: content })
+            body: JSON.stringify({ filename: cleanFilename, htmlContent: finalHtmlContent, imageBase64 })
           });
         } catch (apiErr) {
           console.warn("Server disk upload fallback:", apiErr);
