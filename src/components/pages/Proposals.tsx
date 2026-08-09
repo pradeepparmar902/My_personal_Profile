@@ -128,33 +128,56 @@ export default function Proposals() {
         const description = doc.querySelector('meta[property="og:description"]')?.getAttribute("content") ||
                             "Interactive Executive Proposal featuring voice recordings, video clips, and hands-on modules.";
 
-        let imageUrl = doc.querySelector('meta[property="og:image"]')?.getAttribute("content") ||
-                       doc.querySelector("img")?.getAttribute("src") ||
-                       "./logo-white.png";
+        // ── Step 1: Extract raw og:image from parsed DOM (reliable, any attribute order) ──
+        const rawOgImage = doc.querySelector('meta[property="og:image"]')?.getAttribute("content") || "";
 
-        if (imageUrl.startsWith("data:image") && imageUrl.length > 50000) {
-          const firstImgInDoc = doc.querySelector(".note-content img");
-          if (firstImgInDoc && firstImgInDoc.getAttribute("src") && !firstImgInDoc.getAttribute("src")?.startsWith("data:")) {
-            imageUrl = firstImgInDoc.getAttribute("src")!;
-          } else {
-            imageUrl = "./logo-white.png";
+        // ── Step 2: Helper – compress any base64 image to max 1200×630 JPEG (~50-150 KB) ──
+        const compressBase64 = (src: string): Promise<string> =>
+          new Promise((resolve) => {
+            if (!src.startsWith("data:image")) { resolve(""); return; }
+            const img = new window.Image();
+            img.onload = () => {
+              try {
+                const MAX_W = 1200, MAX_H = 630;
+                const ratio = Math.min(MAX_W / img.width, MAX_H / img.height, 1);
+                const canvas = document.createElement("canvas");
+                canvas.width  = Math.round(img.width  * ratio);
+                canvas.height = Math.round(img.height * ratio);
+                const ctx = canvas.getContext("2d");
+                if (!ctx) { resolve(""); return; }
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL("image/jpeg", 0.82));
+              } catch { resolve(""); }
+            };
+            img.onerror = () => resolve("");
+            img.src = src;
+          });
+
+        // ── Step 3: Try og:image first; fall back to first large <img> in doc ──
+        let rawImageSource = rawOgImage;
+        if (!rawImageSource.startsWith("data:image")) {
+          const allImgs = Array.from(doc.querySelectorAll("img"));
+          for (const imgEl of allImgs) {
+            const src = imgEl.getAttribute("src") || "";
+            if (src.startsWith("data:image") && src.length > 5000) {
+              rawImageSource = src;
+              break;
+            }
           }
         }
 
-        // Clean filename (replaces spaces with underscores to prevent WhatsApp link truncation)
+        // ── Step 4: Compress the image ──
+        const compressedBase64 = rawImageSource ? await compressBase64(rawImageSource) : "";
+
+        // Use compressed image for card display in dashboard; fall back to logo
+        const imageUrl = compressedBase64 || "./logo-white.png";
+
+        // Clean filename
         const cleanFilename = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
         const propId = "prop-" + Date.now();
-        
-        let imageBase64 = null;
-        let finalHtmlContent = content;
-        const ogImageMatch = content.match(/<meta\s+property=["']og:image["']\s+content=["'](data:image\/[^"']+)["']/i);
-        if (ogImageMatch) {
-            imageBase64 = ogImageMatch[1];
-            const coverFilename = cleanFilename.replace(/\.html?$/i, "") + "-cover.png";
-            finalHtmlContent = content.replace(imageBase64, `https://pradeepparmar.com/proposals/${coverFilename}`);
-        }
 
-        // Call new lightweight cover+wrapper endpoint (sends ONLY the image, not the 18MB HTML)
+        // ── Step 5: Send ONLY the compressed image (~100KB) + metadata to server ──
+        // This generates the lightweight OG wrapper page + saves cover PNG
         let wrapperUrl: string | undefined;
         try {
           const coverResp = await fetch('/api/save-proposal-cover', {
@@ -164,7 +187,7 @@ export default function Proposals() {
               filename: cleanFilename,
               title,
               description,
-              imageBase64: imageBase64  // only the image data — much smaller
+              imageBase64: compressedBase64 || null
             })
           });
           if (coverResp.ok) {
@@ -175,15 +198,15 @@ export default function Proposals() {
           console.warn("Cover wrapper generation failed:", coverErr);
         }
 
-        // 2. Store full heavy HTML file in IndexedDB safely
-        await saveFileToIndexedDB(propId, finalHtmlContent);
+        // ── Step 6: Store full HTML in IndexedDB for local viewing ──
+        await saveFileToIndexedDB(propId, content);
 
-        // 3. Also save full HTML on server disk
+        // ── Step 7: Also save full HTML on server disk ──
         try {
           await fetch('/api/upload-proposal', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: cleanFilename, htmlContent: finalHtmlContent })
+            body: JSON.stringify({ filename: cleanFilename, htmlContent: content })
           });
         } catch (apiErr) {
           console.warn("Server disk upload fallback:", apiErr);
