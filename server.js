@@ -145,14 +145,66 @@ const server = http.createServer((req, res) => {
   const extname = String(path.extname(filePath)).toLowerCase();
   const contentType = MIME_TYPES[extname] || 'application/octet-stream';
 
-  fs.readFile(filePath, (err, content) => {
+  // === Smart OG Image Extraction for Proposal HTML files ===
+  // When a /proposals/*.html file is served, check if og:image is base64.
+  // If so, extract it, save as a real PNG, and serve modified HTML with a real URL.
+  // This makes WhatsApp link previews work correctly since WhatsApp cannot load base64 images.
+  const isProposalHtml = extname === '.html' && urlPath.startsWith('/proposals/');
+
+  fs.readFile(filePath, 'utf8', (err, rawContent) => {
     if (err) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end('500 Internal Server Error: ' + err.message);
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
+      return;
     }
+
+    if (isProposalHtml) {
+      try {
+        // Match base64 og:image (any quote style, property before or after content)
+        const base64Match = rawContent.match(
+          /<meta[^>]+property=["']og:image["'][^>]+content=["'](data:image\/(png|jpeg|jpg|webp);base64,[^"']{100,})["']/i
+        ) || rawContent.match(
+          /<meta[^>]+content=["'](data:image\/(png|jpeg|jpg|webp);base64,[^"']{100,})["'][^>]+property=["']og:image["']/i
+        );
+
+        if (base64Match) {
+          const base64Data = base64Match[1];
+          const mimeType = base64Match[2] || 'png';
+          const ext = mimeType === 'jpeg' || mimeType === 'jpg' ? 'jpg' : 'png';
+          const baseName = path.basename(filePath, '.html').replace(/[^a-zA-Z0-9._-]/g, '_');
+          const coverFilename = baseName + '-cover.' + ext;
+
+          // Determine the proposals directory from the file path
+          const proposalsDir = path.dirname(filePath);
+          const coverPath = path.join(proposalsDir, coverFilename);
+
+          // Save the PNG only if it doesn't already exist
+          if (!fs.existsSync(coverPath)) {
+            const imgBuf = Buffer.from(base64Data.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            try { fs.writeFileSync(coverPath, imgBuf); } catch (e) {
+              console.error('Could not save cover image:', e.message);
+            }
+          }
+
+          // Build the public URL for the cover image
+          const protocol = req.headers['x-forwarded-proto'] || 'https';
+          const host = req.headers['x-forwarded-host'] || req.headers.host || 'pradeepparmar.com';
+          const coverUrl = `${protocol}://${host}/proposals/${coverFilename}`;
+
+          // Replace base64 in HTML with real URL
+          const modifiedHtml = rawContent.replace(base64Data, coverUrl);
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(modifiedHtml, 'utf-8');
+          return;
+        }
+      } catch (ogErr) {
+        console.error('OG image extraction error:', ogErr.message);
+        // Fall through to serve original content
+      }
+    }
+
+    res.writeHead(200, { 'Content-Type': contentType });
+    res.end(rawContent, 'utf-8');
   });
 });
 
