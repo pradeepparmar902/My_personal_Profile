@@ -8,6 +8,7 @@ export interface ProposalItem {
   description: string;
   imageUrl: string;
   date: string;
+  wrapperUrl?: string; // lightweight WhatsApp share page URL
 }
 
 // Simple IndexedDB storage for large HTML proposal files (prevents localStorage 5MB quota crashes)
@@ -153,19 +154,40 @@ export default function Proposals() {
             finalHtmlContent = content.replace(imageBase64, `https://pradeepparmar.com/proposals/${coverFilename}`);
         }
 
-        // 1. Store file on Hostinger server disk via API endpoint
+        // Call new lightweight cover+wrapper endpoint (sends ONLY the image, not the 18MB HTML)
+        let wrapperUrl: string | undefined;
+        try {
+          const coverResp = await fetch('/api/save-proposal-cover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: cleanFilename,
+              title,
+              description,
+              imageBase64: imageBase64  // only the image data — much smaller
+            })
+          });
+          if (coverResp.ok) {
+            const coverData = await coverResp.json();
+            wrapperUrl = coverData.wrapperUrl;
+          }
+        } catch (coverErr) {
+          console.warn("Cover wrapper generation failed:", coverErr);
+        }
+
+        // 2. Store full heavy HTML file in IndexedDB safely
+        await saveFileToIndexedDB(propId, finalHtmlContent);
+
+        // 3. Also save full HTML on server disk
         try {
           await fetch('/api/upload-proposal', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: cleanFilename, htmlContent: finalHtmlContent, imageBase64 })
+            body: JSON.stringify({ filename: cleanFilename, htmlContent: finalHtmlContent })
           });
         } catch (apiErr) {
           console.warn("Server disk upload fallback:", apiErr);
         }
-
-        // 2. Store full heavy HTML file in IndexedDB safely
-        await saveFileToIndexedDB(propId, content);
 
         const newProposal: ProposalItem = {
           id: propId,
@@ -173,7 +195,8 @@ export default function Proposals() {
           title,
           description,
           imageUrl,
-          date: new Date().toLocaleDateString()
+          date: new Date().toLocaleDateString(),
+          wrapperUrl
         };
 
         setProposals(prev => [newProposal, ...prev]);
@@ -193,14 +216,19 @@ export default function Proposals() {
     return `${origin}/proposals/${item.filename}`;
   };
 
+  const getShareUrl = (item: ProposalItem) => {
+    // Use the lightweight wrapper page for sharing (it has real og:image for WhatsApp)
+    // Fall back to direct URL if wrapper wasn't generated yet
+    return item.wrapperUrl || getProposalUrl(item);
+  };
+
   const handleShareWhatsApp = (item: ProposalItem) => {
-    const url = getProposalUrl(item);
-    // Send URL directly so WhatsApp scrapers load full visual card
+    const url = getShareUrl(item);
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(url)}`, "_blank");
   };
 
   const handleCopyLink = (item: ProposalItem) => {
-    const url = getProposalUrl(item);
+    const url = getShareUrl(item);
     navigator.clipboard.writeText(url);
     setCopiedId(item.id);
     setTimeout(() => setCopiedId(null), 2000);

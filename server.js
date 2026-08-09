@@ -31,7 +31,101 @@ const server = http.createServer((req, res) => {
     __dirname
   ];
 
-  // API Endpoint to upload proposal HTML directly to server disk
+  // NEW: Lightweight endpoint - saves cover image + generates tiny OG wrapper HTML
+  // This is the CORRECT approach for WhatsApp: share the wrapper URL (tiny page with OG tags)
+  // The wrapper instantly redirects users to the actual proposal. WhatsApp sees the OG image.
+  if (req.method === 'POST' && urlPath === '/api/save-proposal-cover') {
+    let bodyData = '';
+    req.on('data', chunk => { bodyData += chunk; });
+    req.on('end', () => {
+      try {
+        const { filename, title, description, imageBase64 } = JSON.parse(bodyData);
+        const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const baseName  = safeName.replace(/\.html?$/i, '');
+        const coverName   = baseName + '-cover.png';
+        const wrapperName = baseName + '-card.html';
+
+        // Determine where to save files
+        let proposalsDir = null;
+        for (const distPath of possibleDistPaths) {
+          const candidate = path.join(distPath, 'proposals');
+          if (fs.existsSync(candidate)) { proposalsDir = candidate; break; }
+        }
+        if (!proposalsDir) {
+          // Create it in the first dist path
+          proposalsDir = path.join(possibleDistPaths[0], 'proposals');
+          try { fs.mkdirSync(proposalsDir, { recursive: true }); } catch (e) {}
+        }
+
+        // Save cover PNG
+        let coverUrl = '';
+        if (imageBase64) {
+          try {
+            const imgBuf = Buffer.from(imageBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+            fs.writeFileSync(path.join(proposalsDir, coverName), imgBuf);
+            const protocol = req.headers['x-forwarded-proto'] || 'https';
+            const host = req.headers['x-forwarded-host'] || req.headers.host || 'pradeepparmar.com';
+            coverUrl = `${protocol}://${host}/proposals/${coverName}`;
+          } catch (e) { console.error('Cover save error:', e.message); }
+        }
+
+        // Generate tiny OG wrapper HTML (< 3KB)
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers['x-forwarded-host'] || req.headers.host || 'pradeepparmar.com';
+        const actualUrl = `${protocol}://${host}/proposals/${safeName}`;
+        const wrapperUrl = `${protocol}://${host}/proposals/${wrapperName}`;
+        const safeTitle = (title || baseName.replace(/_/g, ' ')).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeDesc  = (description || 'Interactive Executive Proposal').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        const wrapperHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>${safeTitle}</title>
+<meta name="description" content="${safeDesc}"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="${safeTitle}"/>
+<meta property="og:description" content="${safeDesc}"/>
+${coverUrl ? `<meta property="og:image" content="${coverUrl}"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="${coverUrl}"/>` : ''}
+<meta property="og:url" content="${wrapperUrl}"/>
+<meta http-equiv="refresh" content="0;url=${actualUrl}"/>
+</head>
+<body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;">
+<div style="text-align:center;">
+${coverUrl ? `<img src="${coverUrl}" style="max-width:300px;border-radius:12px;margin-bottom:20px;" alt="Cover"/>` : ''}
+<h1 style="font-size:1.5rem;margin-bottom:8px;">${safeTitle}</h1>
+<p style="color:#aaa;">${safeDesc}</p>
+<p style="color:#d4af37;margin-top:20px;">Opening proposal...</p>
+</div>
+<script>setTimeout(function(){window.location.href='${actualUrl}';},500);</script>
+</body>
+</html>`;
+
+        fs.writeFileSync(path.join(proposalsDir, wrapperName), wrapperHtml, 'utf8');
+
+        // Also write to public/proposals if it exists
+        const pubDir = path.join(__dirname, 'public', 'proposals');
+        if (fs.existsSync(path.join(__dirname, 'public'))) {
+          try { fs.mkdirSync(pubDir, { recursive: true }); } catch (e) {}
+          try { fs.writeFileSync(path.join(pubDir, wrapperName), wrapperHtml, 'utf8'); } catch (e) {}
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, wrapperUrl, coverUrl, wrapperName }));
+      } catch (err) {
+        console.error('save-proposal-cover error:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // ORIGINAL: Upload full HTML proposal to disk
   if (req.method === 'POST' && urlPath === '/api/upload-proposal') {
     let bodyData = '';
     req.on('data', chunk => bodyData += chunk);
