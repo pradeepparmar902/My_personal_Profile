@@ -65,18 +65,26 @@ const server = http.createServer((req, res) => {
   }
 
   // ────────────────────────────────────────────────────────────────
-  // SERVE cover images: /covers/:filename  → covers_store/:filename
+  // SERVE cover images + wrappers: /covers/**  → covers_store/**
   // ────────────────────────────────────────────────────────────────
   if (urlPath.startsWith('/covers/')) {
-    const coverFile = path.join(COVERS_DIR, path.basename(urlPath));
+    // Use full relative path (not just basename) so /covers/wrappers/file works
+    const relativePath = urlPath.slice('/covers/'.length); // e.g. "wrappers/AI-card.html"
+    const coverFile = path.join(COVERS_DIR, relativePath);
+    // Security: prevent directory traversal
+    if (!coverFile.startsWith(COVERS_DIR)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Forbidden');
+      return;
+    }
     if (fs.existsSync(coverFile) && fs.statSync(coverFile).isFile()) {
       const ext = path.extname(coverFile).toLowerCase();
-      const ct  = MIME_TYPES[ext] || 'image/jpeg';
-      res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'public, max-age=31536000' });
+      const ct  = MIME_TYPES[ext] || 'application/octet-stream';
+      res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'public, max-age=86400' });
       fs.createReadStream(coverFile).pipe(res);
     } else {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Cover not found: ' + path.basename(urlPath));
+      res.end('Cover not found: ' + relativePath + ' (looked in ' + COVERS_DIR + ')');
     }
     return;
   }
