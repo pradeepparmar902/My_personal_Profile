@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, Globe, Image, X, ArrowRight, Mail } from "lucide-react";
+import { Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, Globe, Image, X, ArrowRight, Mail, Download, ExternalLink, HelpCircle } from "lucide-react";
 
 export interface ProposalItem {
   id: string;
@@ -102,6 +102,7 @@ export default function Proposals() {
   const [coverFile, setCoverFile]       = useState<File | null>(null);
   const [editTitle, setEditTitle]       = useState("");
   const [editDesc, setEditDesc]         = useState("");
+  const [activeModalItem, setActiveModalItem] = useState<ProposalItem | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -227,12 +228,56 @@ export default function Proposals() {
       ? item.imageUrl 
       : `${window.location.origin}/logo-white.png`;
     
-    // HTML snippet that makes an image clickable to open the proposal file
     const htmlSnippet = `<a href="${targetUrl}" target="_blank" style="display:inline-block;text-decoration:none;"><img src="${imgUrl}" alt="${item.title.replace(/"/g, '&quot;')}" style="max-width:100%;height:auto;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);" /></a>`;
     
     navigator.clipboard.writeText(htmlSnippet);
     setCopiedId(`email-${item.id}`);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Download Clickable HTML Image Banner file
+  const handleDownloadClickableHtml = (item: ProposalItem) => {
+    const targetUrl = getProposalUrl(item);
+    const imgUrl = item.imageUrl || `${window.location.origin}/logo-white.png`;
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>${item.title}</title>
+<style>
+  body { margin:0; padding:0; background:#0a0a0a; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-center; min-height:100vh; text-align:center; }
+  .banner-container { max-width:800px; padding:20px; box-sizing:border-box; }
+  .clickable-img { width:100%; max-width:100%; border-radius:16px; box-shadow:0 10px 30px rgba(212,175,55,0.25); cursor:pointer; transition:transform 0.2s ease; }
+  .clickable-img:hover { transform:scale(1.02); }
+  .btn { display:inline-block; margin-top:20px; background:#d4af37; color:#000; font-weight:bold; padding:12px 28px; border-radius:30px; text-decoration:none; font-size:16px; }
+</style>
+</head>
+<body>
+<div class="banner-container">
+  <a href="${targetUrl}" target="_blank">
+    <img src="${imgUrl}" alt="${item.title}" class="clickable-img" />
+  </a>
+  <br/>
+  <a href="${targetUrl}" target="_blank" class="btn">View Executive Proposal →</a>
+</div>
+<script>
+  // Auto-redirect if opened directly in browser
+  setTimeout(function(){ window.location.href = "${targetUrl}"; }, 800);
+</script>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Clickable_Image_${item.filename}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleOpenProposal = async (item: ProposalItem) => {
@@ -263,7 +308,7 @@ export default function Proposals() {
           Interactive <span className="text-[#d4af37]">Proposals & Presentations</span>
         </h1>
         <p className="text-gray-400 text-sm md:text-base">
-          Upload your HTML proposals and generate eye-catching WhatsApp preview cards & HTML Email embed code!
+          Upload your HTML proposals and generate eye-catching WhatsApp preview cards & Clickable Image Embed links!
         </p>
       </div>
 
@@ -325,7 +370,7 @@ export default function Proposals() {
                 Cover Image for WhatsApp Preview <span className="text-[#d4af37]">*</span>
               </label>
               <p className="text-xs text-gray-500 mb-3">
-                Upload your cover banner image. This will appear on WhatsApp link previews and inside email embed cards.
+                Upload your banner image (e.g. Mumbai Meghwal Panchayat banner or custom cover). This image will act as the preview card on WhatsApp and inside email links.
               </p>
               <div className="flex items-center gap-4">
                 {coverPreview ? (
@@ -414,7 +459,7 @@ export default function Proposals() {
                   </div>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 mb-4 text-xs font-mono text-gray-300 truncate flex items-center gap-2">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 mb-3 text-xs font-mono text-gray-300 truncate flex items-center gap-2">
                   <Globe size={14} className="text-[#d4af37] flex-shrink-0" />
                   <span className="truncate">{getProposalUrl(item)}</span>
                 </div>
@@ -427,27 +472,103 @@ export default function Proposals() {
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
-                <button onClick={() => handleShareWhatsApp(item)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-lg">
-                  <Share2 size={14} /> Share on WhatsApp
-                </button>
-                <button onClick={() => handleOpenProposal(item)} className="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs py-2.5 px-3 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer" title="View Proposal">
-                  <Eye size={14} /> View
-                </button>
-                <button onClick={() => handleCopyLink(item)} className="bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white p-2.5 rounded-xl transition-colors cursor-pointer" title="Copy Share Link">
-                  {copiedId === item.id ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
-                </button>
-                <button onClick={() => handleCopyEmailHtml(item)} className="bg-white/10 hover:bg-white/20 text-amber-300 hover:text-amber-200 p-2.5 rounded-xl transition-colors cursor-pointer" title="Copy HTML Email Image Link Code">
-                  {copiedId === `email-${item.id}` ? <Check size={16} className="text-emerald-400" /> : <Mail size={16} />}
-                </button>
-                <button onClick={() => handleDelete(item.id)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-2.5 rounded-xl transition-colors cursor-pointer" title="Delete">
-                  <Trash2 size={16} />
-                </button>
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-2 pt-2 border-t border-white/5">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => handleShareWhatsApp(item)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-lg">
+                    <Share2 size={14} /> Share on WhatsApp
+                  </button>
+                  <button onClick={() => handleOpenProposal(item)} className="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs py-2.5 px-3 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer" title="View Proposal">
+                    <Eye size={14} /> View
+                  </button>
+                  <button onClick={() => handleCopyLink(item)} className="bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white p-2.5 rounded-xl transition-colors cursor-pointer" title="Copy Share Link">
+                    {copiedId === item.id ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                  </button>
+                  <button onClick={() => handleDelete(item.id)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-2.5 rounded-xl transition-colors cursor-pointer" title="Delete">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+
+                {/* Additional Clickable Image Options */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveModalItem(item)}
+                    className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-semibold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <HelpCircle size={14} /> Embed Clickable Image Options
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* ── Modal: Embed & Download Options ── */}
+      {activeModalItem && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#121212] border border-[#d4af37]/40 rounded-3xl p-6 md:p-8 max-w-xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <h3 className="text-lg font-serif font-bold text-white flex items-center gap-2">
+                <Image className="text-[#d4af37]" size={20} /> Clickable Image Options
+              </h3>
+              <button onClick={() => setActiveModalItem(null)} className="text-gray-400 hover:text-white cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Option 1: Download Clickable HTML File */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-white font-semibold text-sm">
+                <Download className="text-emerald-400" size={16} /> Option 1: Download Clickable Image HTML File
+              </div>
+              <p className="text-xs text-gray-400">
+                Downloads an HTML card containing your image banner. When anyone opens or clicks the image file, it instantly navigates to your hosted proposal.
+              </p>
+              <button
+                onClick={() => handleDownloadClickableHtml(activeModalItem)}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                <Download size={14} /> Download Clickable Banner HTML
+              </button>
+            </div>
+
+            {/* Option 2: Copy HTML Embed Code for Email / Website */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-white font-semibold text-sm">
+                <Mail className="text-amber-400" size={16} /> Option 2: Copy HTML Code (For Emails & Websites)
+              </div>
+              <p className="text-xs text-gray-400">
+                Copies HTML code containing your image wrapped inside a hyperlink (`&lt;a href="..."&gt;&lt;img .../&gt;&lt;/a&gt;`). Paste into Gmail, Outlook, or Mailchimp emails so clicking the image opens the proposal.
+              </p>
+              <button
+                onClick={() => handleCopyEmailHtml(activeModalItem)}
+                className="w-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-semibold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                {copiedId === `email-${activeModalItem.id}` ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />} Copy Email HTML Embed Code
+              </button>
+            </div>
+
+            {/* Explanation box */}
+            <div className="bg-blue-950/40 border border-blue-500/30 rounded-2xl p-4 text-xs text-blue-200 space-y-1.5">
+              <div className="font-semibold flex items-center gap-1.5 text-blue-300">
+                💡 How Clickable Images Work Across Different Platforms:
+              </div>
+              <ul className="list-disc list-inside space-y-1 text-gray-300 text-[11px]">
+                <li><strong>In Emails (Gmail, Outlook):</strong> Paste Option 2 code. Tapping the image will open your proposal page.</li>
+                <li><strong>In WhatsApp:</strong> Raw photo attachments (`.png`/`.jpg`) do not support hidden web links in chat apps. Use the <strong>"Share on WhatsApp"</strong> button to send the Link Card where WhatsApp displays the image card as a clickable link.</li>
+                <li><strong>Standalone File:</strong> Download Option 1. Double clicking or opening the file opens the proposal automatically.</li>
+              </ul>
+            </div>
+
+            <div className="text-right">
+              <button onClick={() => setActiveModalItem(null)} className="px-5 py-2 rounded-xl bg-white/10 text-white text-xs hover:bg-white/20 transition-colors cursor-pointer">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
