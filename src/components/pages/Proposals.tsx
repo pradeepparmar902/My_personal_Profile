@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, Globe, Image, X, ArrowRight } from "lucide-react";
+import { Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, Globe, Image, X, ArrowRight, Mail } from "lucide-react";
 
 export interface ProposalItem {
   id: string;
@@ -14,6 +14,7 @@ export interface ProposalItem {
 // ── IndexedDB helpers for large HTML files ──────────────────────────────────
 const DB_NAME = "PP_Proposals_DB";
 const STORE_NAME = "proposals_files";
+
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
@@ -25,6 +26,7 @@ function openDB(): Promise<IDBDatabase> {
     request.onerror  = () => reject(request.error);
   });
 }
+
 async function saveFileToIndexedDB(id: string, html: string) {
   try {
     const db = await openDB();
@@ -33,6 +35,7 @@ async function saveFileToIndexedDB(id: string, html: string) {
     return new Promise<void>((res, rej) => { tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); });
   } catch (e) { console.error(e); }
 }
+
 async function getFileFromIndexedDB(id: string): Promise<string | null> {
   try {
     const db = await openDB();
@@ -41,6 +44,7 @@ async function getFileFromIndexedDB(id: string): Promise<string | null> {
     return new Promise((res) => { req.onsuccess = () => res(req.result || null); req.onerror = () => res(null); });
   } catch { return null; }
 }
+
 async function deleteFileFromIndexedDB(id: string) {
   try {
     const db = await openDB();
@@ -75,7 +79,6 @@ function compressImageFile(file: File): Promise<string> {
   });
 }
 
-// ── Pending draft before user confirms ────────────────────────────────────
 interface PendingProposal {
   htmlContent: string;
   filename: string;
@@ -92,13 +95,13 @@ export default function Proposals() {
     return [];
   });
 
-  const [copiedId, setCopiedId]     = useState<string | null>(null);
-  const [isSaving, setIsSaving]     = useState(false);
-  const [pending, setPending]       = useState<PendingProposal | null>(null);
+  const [copiedId, setCopiedId]         = useState<string | null>(null);
+  const [isSaving, setIsSaving]         = useState(false);
+  const [pending, setPending]           = useState<PendingProposal | null>(null);
   const [coverPreview, setCoverPreview] = useState<string>("");
-  const [coverFile, setCoverFile]   = useState<File | null>(null);
-  const [editTitle, setEditTitle]   = useState("");
-  const [editDesc, setEditDesc]     = useState("");
+  const [coverFile, setCoverFile]       = useState<File | null>(null);
+  const [editTitle, setEditTitle]       = useState("");
+  const [editDesc, setEditDesc]         = useState("");
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -110,7 +113,6 @@ export default function Proposals() {
     } catch (e) { console.warn(e); }
   }, [proposals]);
 
-  // ── Step 1: HTML file selected ─────────────────────────────────────────
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -138,11 +140,9 @@ export default function Proposals() {
       setCoverFile(null);
     };
     reader.readAsText(file);
-    // reset input so same file can be re-uploaded
     e.target.value = "";
   };
 
-  // ── Step 2: Cover image selected ──────────────────────────────────────
   const handleCoverImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -151,14 +151,12 @@ export default function Proposals() {
     setCoverPreview(preview);
   };
 
-  // ── Step 2: Confirm & publish ──────────────────────────────────────────
   const handleConfirmPublish = async () => {
     if (!pending) return;
     setIsSaving(true);
     try {
       const compressedBase64 = coverFile ? await compressImageFile(coverFile) : "";
 
-      // 1. Generate OG wrapper + save cover PNG on server
       let wrapperUrl: string | undefined;
       try {
         const resp = await fetch("/api/save-proposal-cover", {
@@ -179,10 +177,8 @@ export default function Proposals() {
 
       const propId = "prop-" + Date.now();
 
-      // 2. Store full HTML in IndexedDB for local viewing
       await saveFileToIndexedDB(propId, pending.htmlContent);
 
-      // 3. Save full HTML on server disk
       try {
         await fetch("/api/upload-proposal", {
           method: "POST",
@@ -225,6 +221,20 @@ export default function Proposals() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const handleCopyEmailHtml = (item: ProposalItem) => {
+    const targetUrl = getProposalUrl(item);
+    const imgUrl = item.imageUrl && !item.imageUrl.startsWith("data:") 
+      ? item.imageUrl 
+      : `${window.location.origin}/logo-white.png`;
+    
+    // HTML snippet that makes an image clickable to open the proposal file
+    const htmlSnippet = `<a href="${targetUrl}" target="_blank" style="display:inline-block;text-decoration:none;"><img src="${imgUrl}" alt="${item.title.replace(/"/g, '&quot;')}" style="max-width:100%;height:auto;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);" /></a>`;
+    
+    navigator.clipboard.writeText(htmlSnippet);
+    setCopiedId(`email-${item.id}`);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const handleOpenProposal = async (item: ProposalItem) => {
     const db = await getFileFromIndexedDB(item.id);
     if (db) {
@@ -253,7 +263,7 @@ export default function Proposals() {
           Interactive <span className="text-[#d4af37]">Proposals & Presentations</span>
         </h1>
         <p className="text-gray-400 text-sm md:text-base">
-          Upload your HTML proposals and generate beautiful WhatsApp preview cards with your chosen cover image.
+          Upload your HTML proposals and generate eye-catching WhatsApp preview cards & HTML Email embed code!
         </p>
       </div>
 
@@ -281,7 +291,7 @@ export default function Proposals() {
           <div className="border border-[#d4af37]/40 bg-black/60 backdrop-blur-md rounded-3xl p-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-serif font-bold text-white flex items-center gap-2">
-                <ArrowRight size={18} className="text-[#d4af37]" /> Setup WhatsApp Card
+                <ArrowRight size={18} className="text-[#d4af37]" /> Setup WhatsApp Card & Cover
               </h3>
               <button onClick={() => setPending(null)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
                 <X size={18} />
@@ -315,7 +325,7 @@ export default function Proposals() {
                 Cover Image for WhatsApp Preview <span className="text-[#d4af37]">*</span>
               </label>
               <p className="text-xs text-gray-500 mb-3">
-                Upload the same image you set in "WhatsApp Card & Cover Settings" in LearningOS (the EDUCATION 2026 / cover banner). This will appear when the link is shared on WhatsApp.
+                Upload your cover banner image. This will appear on WhatsApp link previews and inside email embed cards.
               </p>
               <div className="flex items-center gap-4">
                 {coverPreview ? (
@@ -421,11 +431,14 @@ export default function Proposals() {
                 <button onClick={() => handleShareWhatsApp(item)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-lg">
                   <Share2 size={14} /> Share on WhatsApp
                 </button>
-                <button onClick={() => handleOpenProposal(item)} className="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs py-2.5 px-3 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer">
+                <button onClick={() => handleOpenProposal(item)} className="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs py-2.5 px-3 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer" title="View Proposal">
                   <Eye size={14} /> View
                 </button>
                 <button onClick={() => handleCopyLink(item)} className="bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white p-2.5 rounded-xl transition-colors cursor-pointer" title="Copy Share Link">
                   {copiedId === item.id ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                </button>
+                <button onClick={() => handleCopyEmailHtml(item)} className="bg-white/10 hover:bg-white/20 text-amber-300 hover:text-amber-200 p-2.5 rounded-xl transition-colors cursor-pointer" title="Copy HTML Email Image Link Code">
+                  {copiedId === `email-${item.id}` ? <Check size={16} className="text-emerald-400" /> : <Mail size={16} />}
                 </button>
                 <button onClick={() => handleDelete(item.id)} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-2.5 rounded-xl transition-colors cursor-pointer" title="Delete">
                   <Trash2 size={16} />
