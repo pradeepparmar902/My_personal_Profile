@@ -18,11 +18,14 @@ const MIME_TYPES = {
   '.woff2':'font/woff2',
 };
 
-// ── Persistent storage outside dist/ so git deploys never wipe covers ──────
-const COVERS_DIR   = path.join(__dirname, 'covers_store');
-const WRAPPERS_DIR = path.join(__dirname, 'covers_store', 'wrappers');
-if (!fs.existsSync(COVERS_DIR))   fs.mkdirSync(COVERS_DIR,   { recursive: true });
-if (!fs.existsSync(WRAPPERS_DIR)) fs.mkdirSync(WRAPPERS_DIR, { recursive: true });
+// ── Persistent storage outside dist/ so git deploys & restarts NEVER wipe uploaded files ─────
+const COVERS_DIR    = path.join(__dirname, 'covers_store');
+const WRAPPERS_DIR  = path.join(__dirname, 'covers_store', 'wrappers');
+const PROPOSALS_DIR = path.join(__dirname, 'proposals_store');
+
+if (!fs.existsSync(COVERS_DIR))    fs.mkdirSync(COVERS_DIR,    { recursive: true });
+if (!fs.existsSync(WRAPPERS_DIR))  fs.mkdirSync(WRAPPERS_DIR,  { recursive: true });
+if (!fs.existsSync(PROPOSALS_DIR)) fs.mkdirSync(PROPOSALS_DIR, { recursive: true });
 
 // Possible locations for the main static dist folder
 const possibleDistPaths = [
@@ -48,16 +51,10 @@ const server = http.createServer((req, res) => {
   if (urlPath === '/debug-proposals') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     try {
-      const coversFiles   = fs.existsSync(COVERS_DIR)   ? fs.readdirSync(COVERS_DIR)   : [];
-      const wrappersFiles = fs.existsSync(WRAPPERS_DIR) ? fs.readdirSync(WRAPPERS_DIR) : [];
-      const distProposals = (() => {
-        for (const dp of possibleDistPaths) {
-          const pp = path.join(dp, 'proposals');
-          if (fs.existsSync(pp)) return fs.readdirSync(pp);
-        }
-        return [];
-      })();
-      res.end(JSON.stringify({ __dirname, COVERS_DIR, coversFiles, wrappersFiles, distProposals }, null, 2));
+      const coversFiles    = fs.existsSync(COVERS_DIR)    ? fs.readdirSync(COVERS_DIR)    : [];
+      const wrappersFiles  = fs.existsSync(WRAPPERS_DIR)  ? fs.readdirSync(WRAPPERS_DIR)  : [];
+      const proposalsFiles = fs.existsSync(PROPOSALS_DIR) ? fs.readdirSync(PROPOSALS_DIR) : [];
+      res.end(JSON.stringify({ __dirname, COVERS_DIR, PROPOSALS_DIR, coversFiles, wrappersFiles, proposalsFiles }, null, 2));
     } catch (e) {
       res.end(JSON.stringify({ error: e.message }));
     }
@@ -68,10 +65,8 @@ const server = http.createServer((req, res) => {
   // SERVE cover images + wrappers: /covers/**  → covers_store/**
   // ────────────────────────────────────────────────────────────────
   if (urlPath.startsWith('/covers/')) {
-    // Use full relative path (not just basename) so /covers/wrappers/file works
-    const relativePath = urlPath.slice('/covers/'.length); // e.g. "wrappers/AI-card.html"
+    const relativePath = urlPath.slice('/covers/'.length);
     const coverFile = path.join(COVERS_DIR, relativePath);
-    // Security: prevent directory traversal
     if (!coverFile.startsWith(COVERS_DIR)) {
       res.writeHead(403, { 'Content-Type': 'text/plain' });
       res.end('Forbidden');
@@ -84,7 +79,7 @@ const server = http.createServer((req, res) => {
       fs.createReadStream(coverFile).pipe(res);
     } else {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Cover not found: ' + relativePath + ' (looked in ' + COVERS_DIR + ')');
+      res.end('Cover not found: ' + relativePath);
     }
     return;
   }
@@ -113,7 +108,6 @@ const server = http.createServer((req, res) => {
             );
             fs.writeFileSync(path.join(COVERS_DIR, coverFile), imgBuf);
             coverUrl = `${getProto(req)}://${getHost(req)}/covers/${coverFile}`;
-            console.log('[cover saved]', coverUrl, imgBuf.length, 'bytes');
           } catch (e) { console.error('[cover save error]', e.message); }
         }
 
@@ -153,7 +147,6 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 <a href="${actualUrl}" style="display:inline-block;background:#d4af37;color:#000;font-weight:700;padding:12px 28px;border-radius:10px;text-decoration:none;font-size:.95rem;">Open Proposal →</a>
 </div>
 <script>
-  // Redirect real browsers automatically; bots stay here to read OG tags
   var ua = (navigator.userAgent||'').toLowerCase();
   if (!/bot|crawler|spider|facebook|whatsapp|telegram|slack|linkedin|twitter/i.test(ua)) {
     window.location.replace('${actualUrl}');
@@ -164,9 +157,8 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 
         // Save wrapper to covers_store/wrappers/
         fs.writeFileSync(path.join(WRAPPERS_DIR, wrapperFile), wrapperHtml, 'utf8');
-        console.log('[wrapper saved]', wrapperFile);
 
-        // ALSO write wrapper to dist/proposals/ so it's served at /proposals/*-card.html
+        // ALSO write wrapper to dist/proposals/
         for (const dp of possibleDistPaths) {
           const pp = path.join(dp, 'proposals');
           try {
@@ -187,7 +179,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   }
 
   // ────────────────────────────────────────────────────────────────
-  // API: POST /api/upload-proposal — save full HTML to disk
+  // API: POST /api/upload-proposal — save full HTML to persistent proposals_store/
   // ────────────────────────────────────────────────────────────────
   if (req.method === 'POST' && urlPath === '/api/upload-proposal') {
     let body = '';
@@ -201,6 +193,11 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
           return;
         }
         const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+        // Save to persistent proposals_store directory outside dist/
+        fs.writeFileSync(path.join(PROPOSALS_DIR, safeName), htmlContent, 'utf8');
+
+        // Also save to dist/proposals for fast serving
         for (const dp of possibleDistPaths) {
           const pp = path.join(dp, 'proposals');
           try {
@@ -208,6 +205,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
             fs.writeFileSync(path.join(pp, safeName), htmlContent, 'utf8');
           } catch {}
         }
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, url: `/proposals/${safeName}` }));
       } catch (err) {
@@ -227,9 +225,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
       const rootFiles = fs.readdirSync(__dirname);
       const distPath  = path.join(__dirname, 'dist');
       const distFiles = fs.existsSync(distPath) ? fs.readdirSync(distPath) : [];
-      const assetsPath   = path.join(distPath, 'assets');
-      const assetsFiles  = fs.existsSync(assetsPath) ? fs.readdirSync(assetsPath) : [];
-      res.end(JSON.stringify({ __dirname, rootFiles, distFiles, assetsFiles }, null, 2));
+      res.end(JSON.stringify({ __dirname, rootFiles, distFiles }, null, 2));
     } catch (e) {
       res.end(JSON.stringify({ error: e.message }));
     }
@@ -237,17 +233,25 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   }
 
   // ────────────────────────────────────────────────────────────────
-  // STATIC FILE SERVING
-  // Also check covers_store/wrappers/ for *-card.html files
+  // STATIC FILE SERVING & PERSISTENT PROPOSAL RESOLUTION
   // ────────────────────────────────────────────────────────────────
   let filePath = null;
 
-  // Check wrappers folder for *-card.html requests
+  // 1. Check wrappers folder for *-card.html requests
   if (urlPath.startsWith('/proposals/') && urlPath.endsWith('-card.html')) {
     const wrapperCandidate = path.join(WRAPPERS_DIR, path.basename(urlPath));
     if (fs.existsSync(wrapperCandidate)) filePath = wrapperCandidate;
   }
 
+  // 2. Check persistent proposals_store for /proposals/*.html requests
+  if (!filePath && urlPath.startsWith('/proposals/')) {
+    const proposalCandidate = path.join(PROPOSALS_DIR, path.basename(urlPath));
+    if (fs.existsSync(proposalCandidate) && fs.statSync(proposalCandidate).isFile()) {
+      filePath = proposalCandidate;
+    }
+  }
+
+  // 3. Fall back to checking dist/ directories
   if (!filePath) {
     for (const dp of possibleDistPaths) {
       const candidate = path.join(dp, urlPath);
@@ -273,7 +277,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 
   if (!filePath) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('404 Not Found - dist/index.html is missing.');
+    res.end('404 Not Found - file is missing: ' + urlPath);
     return;
   }
 
@@ -286,5 +290,5 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Covers stored at: ${COVERS_DIR}`);
+  console.log(`Persistent Proposals stored at: ${PROPOSALS_DIR}`);
 });
