@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, Globe, Image, X, ArrowRight, Mail, Download, ExternalLink, HelpCircle } from "lucide-react";
+import { Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, Globe, Image, X, ArrowRight, Mail, Download, RefreshCw, HelpCircle } from "lucide-react";
 
 export interface ProposalItem {
   id: string;
@@ -84,6 +84,7 @@ interface PendingProposal {
   filename: string;
   title: string;
   description: string;
+  targetProposalId?: string; // set if updating an existing proposal!
 }
 
 export default function Proposals() {
@@ -103,7 +104,10 @@ export default function Proposals() {
   const [editTitle, setEditTitle]       = useState("");
   const [editDesc, setEditDesc]         = useState("");
   const [activeModalItem, setActiveModalItem] = useState<ProposalItem | null>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
+  
+  const coverInputRef  = useRef<HTMLInputElement>(null);
+  const updateInputRef = useRef<HTMLInputElement>(null);
+  const [updatingProposal, setUpdatingProposal] = useState<ProposalItem | null>(null);
 
   useEffect(() => {
     try {
@@ -114,6 +118,7 @@ export default function Proposals() {
     } catch (e) { console.warn(e); }
   }, [proposals]);
 
+  // ── Step 1: Upload New HTML File ─────────────────────────────────────────
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -144,6 +149,51 @@ export default function Proposals() {
     e.target.value = "";
   };
 
+  // ── Step 1 (Update Mode): Trigger update for existing proposal ──────────
+  const triggerUpdateProposal = (item: ProposalItem) => {
+    setUpdatingProposal(item);
+    if (updateInputRef.current) {
+      updateInputRef.current.click();
+    }
+  };
+
+  const handleUpdateFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !updatingProposal) return;
+    if (!file.name.toLowerCase().endsWith(".html") && !file.name.toLowerCase().endsWith(".htm")) {
+      alert("Please upload an HTML file (.html)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const content = evt.target?.result as string || "";
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, "text/html");
+
+      const title = doc.querySelector('meta[property="og:title"]')?.getAttribute("content")
+        || updatingProposal.title;
+      const desc = doc.querySelector('meta[property="og:description"]')?.getAttribute("content")
+        || updatingProposal.description;
+
+      // KEEP THE EXACT SAME FILENAME so URL NEVER CHANGES!
+      setPending({
+        htmlContent: content,
+        filename: updatingProposal.filename,
+        title: title,
+        description: desc,
+        targetProposalId: updatingProposal.id
+      });
+
+      setEditTitle(updatingProposal.title);
+      setEditDesc(updatingProposal.description);
+      setCoverPreview(updatingProposal.imageUrl.startsWith("data:") ? updatingProposal.imageUrl : "");
+      setCoverFile(null);
+      setUpdatingProposal(null);
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
   const handleCoverImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -152,11 +202,12 @@ export default function Proposals() {
     setCoverPreview(preview);
   };
 
+  // ── Step 2: Confirm & Publish / Update ────────────────────────────────────
   const handleConfirmPublish = async () => {
     if (!pending) return;
     setIsSaving(true);
     try {
-      const compressedBase64 = coverFile ? await compressImageFile(coverFile) : "";
+      let compressedBase64 = coverFile ? await compressImageFile(coverFile) : coverPreview;
 
       let wrapperUrl: string | undefined;
       try {
@@ -176,10 +227,12 @@ export default function Proposals() {
         }
       } catch (err) { console.warn("Cover wrapper API failed:", err); }
 
-      const propId = "prop-" + Date.now();
+      const propId = pending.targetProposalId || ("prop-" + Date.now());
 
+      // 1. Update IndexedDB for local viewing
       await saveFileToIndexedDB(propId, pending.htmlContent);
 
+      // 2. Overwrite server disk HTML file (URL stays identical!)
       try {
         await fetch("/api/upload-proposal", {
           method: "POST",
@@ -188,7 +241,7 @@ export default function Proposals() {
         });
       } catch {}
 
-      const newProposal: ProposalItem = {
+      const updatedProposal: ProposalItem = {
         id: propId,
         filename: pending.filename,
         title: editTitle,
@@ -198,13 +251,20 @@ export default function Proposals() {
         wrapperUrl
       };
 
-      setProposals(prev => [newProposal, ...prev]);
+      if (pending.targetProposalId) {
+        // Replace existing item in state
+        setProposals(prev => prev.map(p => p.id === pending.targetProposalId ? updatedProposal : p));
+      } else {
+        // Add new proposal to top
+        setProposals(prev => [updatedProposal, ...prev]);
+      }
+
       setPending(null);
       setCoverPreview("");
       setCoverFile(null);
     } catch (err) {
       console.error(err);
-      alert("Upload failed. Please try again.");
+      alert("Save failed. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -247,7 +307,7 @@ export default function Proposals() {
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>${item.title}</title>
 <style>
-  body { margin:0; padding:0; background:#0a0a0a; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-center; min-height:100vh; text-align:center; }
+  body { margin:0; padding:0; background:#0a0a0a; color:#fff; font-family:sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; text-align:center; }
   .banner-container { max-width:800px; padding:20px; box-sizing:border-box; }
   .clickable-img { width:100%; max-width:100%; border-radius:16px; box-shadow:0 10px 30px rgba(212,175,55,0.25); cursor:pointer; transition:transform 0.2s ease; }
   .clickable-img:hover { transform:scale(1.02); }
@@ -263,7 +323,6 @@ export default function Proposals() {
   <a href="${targetUrl}" target="_blank" class="btn">View Executive Proposal →</a>
 </div>
 <script>
-  // Auto-redirect if opened directly in browser
   setTimeout(function(){ window.location.href = "${targetUrl}"; }, 800);
 </script>
 </body>
@@ -299,6 +358,9 @@ export default function Proposals() {
 
   return (
     <div className="pt-28 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
+      {/* Hidden file input for updating existing proposals */}
+      <input ref={updateInputRef} type="file" accept=".html,.htm" onChange={handleUpdateFileSelected} className="hidden" />
+
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#d4af37]/40 bg-[#d4af37]/10 text-[#d4af37] text-xs font-semibold uppercase tracking-wider mb-4">
@@ -308,11 +370,11 @@ export default function Proposals() {
           Interactive <span className="text-[#d4af37]">Proposals & Presentations</span>
         </h1>
         <p className="text-gray-400 text-sm md:text-base">
-          Upload your HTML proposals and generate eye-catching WhatsApp preview cards & Clickable Image Embed links!
+          Upload HTML proposals, update existing proposals without changing shared URLs, and generate WhatsApp preview cards!
         </p>
       </div>
 
-      {/* ── Step 1: HTML Upload ── */}
+      {/* ── Step 1: Upload New HTML File ── */}
       {!pending && (
         <div className="mb-12 max-w-2xl mx-auto">
           <label className="relative border-2 border-dashed border-[#d4af37]/40 hover:border-[#d4af37] bg-black/40 backdrop-blur-md rounded-3xl p-8 text-center transition-all group cursor-pointer block">
@@ -323,25 +385,40 @@ export default function Proposals() {
               </div>
               <h3 className="text-lg font-serif font-semibold text-white">Click or Drag & Drop HTML Proposal File</h3>
               <p className="text-xs text-gray-400 max-w-md">
-                Step 1 of 2 — Select your exported LearningOS HTML file. You'll set the cover image in the next step.
+                Select your exported LearningOS HTML file. To update an existing proposal without changing its URL, use the "Update HTML" button on its card below.
               </p>
             </div>
           </label>
         </div>
       )}
 
-      {/* ── Step 2: Setup Panel (after HTML selected) ── */}
+      {/* ── Step 2: Setup / Update Panel ── */}
       {pending && (
         <div className="mb-12 max-w-2xl mx-auto">
-          <div className="border border-[#d4af37]/40 bg-black/60 backdrop-blur-md rounded-3xl p-8">
+          <div className="border border-[#d4af37]/40 bg-black/60 backdrop-blur-md rounded-3xl p-8 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-serif font-bold text-white flex items-center gap-2">
-                <ArrowRight size={18} className="text-[#d4af37]" /> Setup WhatsApp Card & Cover
+                {pending.targetProposalId ? (
+                  <>
+                    <RefreshCw size={18} className="text-amber-400" /> Update Existing Proposal Content
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight size={18} className="text-[#d4af37]" /> Setup WhatsApp Card & Cover
+                  </>
+                )}
               </h3>
               <button onClick={() => setPending(null)} className="text-gray-500 hover:text-white transition-colors cursor-pointer">
                 <X size={18} />
               </button>
             </div>
+
+            {pending.targetProposalId && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4 text-xs text-amber-300 flex items-center gap-2">
+                <RefreshCw size={14} className="flex-shrink-0" />
+                <span>Updating <strong>{pending.filename}</strong> — The shared URL will remain exactly the same!</span>
+              </div>
+            )}
 
             {/* Title */}
             <div className="mb-4">
@@ -370,7 +447,7 @@ export default function Proposals() {
                 Cover Image for WhatsApp Preview <span className="text-[#d4af37]">*</span>
               </label>
               <p className="text-xs text-gray-500 mb-3">
-                Upload your banner image (e.g. Mumbai Meghwal Panchayat banner or custom cover). This image will act as the preview card on WhatsApp and inside email links.
+                Upload your banner image (e.g. Mumbai Meghwal Panchayat banner or custom cover). This image will appear as the WhatsApp preview card.
               </p>
               <div className="flex items-center gap-4">
                 {coverPreview ? (
@@ -403,7 +480,7 @@ export default function Proposals() {
 
             {/* File info */}
             <div className="bg-white/5 rounded-xl px-4 py-3 mb-6 text-xs text-gray-400 font-mono">
-              📄 {pending.filename}
+              📄 Target File: {pending.filename}
             </div>
 
             {/* Actions */}
@@ -419,7 +496,7 @@ export default function Proposals() {
                 disabled={isSaving}
                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-sm py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
-                {isSaving ? "Publishing..." : "✅ Publish & Generate WhatsApp Card"}
+                {isSaving ? "Saving..." : (pending.targetProposalId ? "🔄 Overwrite & Update Live Proposal" : "✅ Publish & Generate WhatsApp Card")}
               </button>
             </div>
           </div>
@@ -489,13 +566,22 @@ export default function Proposals() {
                   </button>
                 </div>
 
-                {/* Additional Clickable Image Options */}
+                {/* Additional Buttons: Update HTML & Clickable Embed Options */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setActiveModalItem(item)}
-                    className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-semibold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={() => triggerUpdateProposal(item)}
+                    className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 font-semibold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Replace/Update HTML content for this proposal without changing the shared URL"
                   >
-                    <HelpCircle size={14} /> Embed Clickable Image Options
+                    <RefreshCw size={14} /> Update HTML File (Keep Same URL)
+                  </button>
+
+                  <button
+                    onClick={() => setActiveModalItem(item)}
+                    className="bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white font-semibold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Clickable image embed code & options"
+                  >
+                    <HelpCircle size={14} /> Embed Options
                   </button>
                 </div>
               </div>
