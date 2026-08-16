@@ -184,9 +184,9 @@ export default function Proposals() {
         targetProposalId: updatingProposal.id
       });
 
-      setEditTitle(updatingProposal.title);
-      setEditDesc(updatingProposal.description);
-      setCoverPreview(updatingProposal.imageUrl.startsWith("data:") ? updatingProposal.imageUrl : "");
+      setEditTitle(title);
+      setEditDesc(desc);
+      setCoverPreview(updatingProposal.imageUrl);
       setCoverFile(null);
       setUpdatingProposal(null);
     };

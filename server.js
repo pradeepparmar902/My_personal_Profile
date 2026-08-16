@@ -75,7 +75,7 @@ const server = http.createServer((req, res) => {
     if (fs.existsSync(coverFile) && fs.statSync(coverFile).isFile()) {
       const ext = path.extname(coverFile).toLowerCase();
       const ct  = MIME_TYPES[ext] || 'application/octet-stream';
-      res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'public, max-age=86400' });
+      res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'no-cache, no-store, must-revalidate' });
       fs.createReadStream(coverFile).pipe(res);
     } else {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -284,7 +284,18 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   const extname     = String(path.extname(filePath)).toLowerCase();
   const contentType = MIME_TYPES[extname] || 'application/octet-stream';
 
-  res.writeHead(200, { 'Content-Type': contentType });
+  // Set No-Cache headers for proposal HTML files to ensure updates reflect immediately when refreshed!
+  const isProposalRequest = urlPath.startsWith('/proposals/');
+  const cacheHeader = isProposalRequest 
+    ? 'no-cache, no-store, must-revalidate, max-age=0' 
+    : 'public, max-age=86400';
+
+  res.writeHead(200, { 
+    'Content-Type': contentType,
+    'Cache-Control': cacheHeader,
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
   fs.createReadStream(filePath).pipe(res);
 });
 
