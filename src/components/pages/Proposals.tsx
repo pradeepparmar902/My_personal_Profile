@@ -762,7 +762,9 @@ export default function Proposals() {
                               </div>
                               <div className="text-[11px] text-rose-300 font-mono flex items-center gap-1">
                                 <MapPin size={11} className="text-rose-400" />
-                                {log.location ? `${log.location.city}, ${log.location.country}` : 'Location Detected'}
+                                {log.location && log.location.neighborhood 
+                                  ? `${log.location.neighborhood}, ${log.location.city}` 
+                                  : (log.location ? `${log.location.city}, ${log.location.country}` : 'Location Detected')}
                                 <span className="text-gray-500 ml-2">• IP: {log.ip}</span>
                               </div>
                             </div>

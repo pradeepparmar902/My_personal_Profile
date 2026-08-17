@@ -97,7 +97,7 @@ function fetchGeoLocation(ip, req, callback) {
   }
 
   if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
-    callback({ city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN', neighborhood: 'Central Hub' });
+    callback({ city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN', neighborhood: '' });
     return;
   }
 
@@ -135,7 +135,7 @@ function fetchGeoLocation(ip, req, callback) {
   });
 }
 
-// Reverse Geocode GPS Coordinates to Neighborhood (Matunga, Dadar, Sion, etc.)
+// Reverse Geocode GPS Coordinates to Neighborhood (e.g. Kurla East, Matunga, Dadar, Sion)
 function reverseGeocodeGps(lat, lon, callback) {
   const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
   const options = {
@@ -170,45 +170,62 @@ function recordView(filename, req, clientVisitorId = null, gpsCoords = null) {
 
   const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
   const ip = rawIp.split(',')[0].trim();
+  const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
   const visitorId = clientVisitorId || `${ip}_${ua.slice(0, 30)}`;
   const { device, browser, os } = parseUserAgent(ua);
 
   const logs = loadAnalyticsLogs();
+  const now = Date.now();
 
-  const newLog = {
-    id: 'view_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-    filename: filename.replace(/[^a-zA-Z0-9._-]/g, '_'),
-    timestamp: new Date().toISOString(),
-    ip,
-    userAgent: ua,
-    device,
-    browser,
-    os,
-    visitorId,
-    location: { city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN', neighborhood: '' }
-  };
+  // Deduplication check: look for recent view log from same visitor & file in the last 60 seconds
+  let targetLog = null;
+  for (let i = logs.length - 1; i >= 0; i--) {
+    const l = logs[i];
+    const logTime = new Date(l.timestamp).getTime();
+    if (l.filename === safeFilename && (l.visitorId === visitorId || l.ip === ip) && (now - logTime) < 60000) {
+      targetLog = l;
+      break;
+    }
+  }
 
-  logs.push(newLog);
+  if (targetLog) {
+    if (clientVisitorId) targetLog.visitorId = clientVisitorId;
+  } else {
+    targetLog = {
+      id: 'view_' + now + '_' + Math.random().toString(36).substr(2, 5),
+      filename: safeFilename,
+      timestamp: new Date(now).toISOString(),
+      ip,
+      userAgent: ua,
+      device,
+      browser,
+      os,
+      visitorId,
+      location: { city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN', neighborhood: '' }
+    };
+    logs.push(targetLog);
+  }
+
   saveAnalyticsLogs(logs);
 
   // 1. IP Geolocation
   fetchGeoLocation(ip, req, (ipLoc) => {
-    newLog.location = { ...newLog.location, ...ipLoc };
+    targetLog.location = { ...targetLog.location, ...ipLoc };
     saveAnalyticsLogs(logs);
 
-    // 2. If GPS coordinates were sent from browser, reverse geocode to Neighborhood (Matunga/Dadar/Sion)
+    // 2. If GPS coordinates were sent from browser, reverse geocode to Neighborhood (e.g. Kurla East, Matunga, Dadar)
     if (gpsCoords && gpsCoords.lat && gpsCoords.lon) {
       reverseGeocodeGps(gpsCoords.lat, gpsCoords.lon, (gpsLoc) => {
         if (gpsLoc) {
-          newLog.location.neighborhood = gpsLoc.neighborhood || newLog.location.neighborhood;
-          if (gpsLoc.city) newLog.location.city = gpsLoc.city;
+          targetLog.location.neighborhood = gpsLoc.neighborhood || targetLog.location.neighborhood;
+          if (gpsLoc.city) targetLog.location.city = gpsLoc.city;
           saveAnalyticsLogs(logs);
         }
       });
     }
   });
 
-  return newLog;
+  return targetLog;
 }
 
 const server = http.createServer((req, res) => {
@@ -262,7 +279,7 @@ const server = http.createServer((req, res) => {
   }
 
   // ────────────────────────────────────────────────────────────────
-  // API: POST /api/track-proposal-view (Receives GPS lat/lon & visitorId)
+  // API: POST /api/track-proposal-view
   // ────────────────────────────────────────────────────────────────
   if (req.method === 'POST' && urlPath === '/api/track-proposal-view') {
     let body = '';
@@ -302,7 +319,7 @@ const server = http.createServer((req, res) => {
   }
 
   // ────────────────────────────────────────────────────────────────
-  // SERVE cover images + wrappers: /covers/**
+  // SERVE cover images + wrappers
   // ────────────────────────────────────────────────────────────────
   if (urlPath.startsWith('/covers/')) {
     const relativePath = urlPath.slice('/covers/'.length);
@@ -502,7 +519,6 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
     const targetFilename = path.basename(filePath);
     recordView(targetFilename, req);
 
-    // Read HTML file and inject automatic GPS Neighborhood tracking script
     fs.readFile(filePath, 'utf8', (err, htmlContent) => {
       if (err) {
         res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -510,7 +526,6 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
         return;
       }
 
-      // Inject lightweight GPS tracking script before </body>
       const gpsTrackingScript = `
 <script>
 (function() {
@@ -568,5 +583,4 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Analytics with GPS Neighborhood Geolocation (Matunga/Dadar/Sion) ready.`);
 });
