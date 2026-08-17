@@ -161,37 +161,66 @@ export default function Proposals() {
   const openAnalyticsModal = async (item: ProposalItem) => {
     setAnalyticsItem(item);
     setIsLoadingAnalytics(true);
-    let loadedData: ProposalAnalyticsData | null = null;
+
+    let hasData = false;
+
+    // 1. Attempt fast fetch from Node Server API with 3.5s timeout
     try {
-      const resp = await fetch(`/api/proposal-analytics?filename=${encodeURIComponent(item.filename)}`);
-      if (resp.ok) {
-        loadedData = await resp.json();
-        setAnalyticsData(loadedData);
+      const controller = new AbortController();
+      const tId = setTimeout(() => controller.abort(), 3500);
+
+      const resp = await fetch(`/api/proposal-analytics?filename=${encodeURIComponent(item.filename)}`, {
+        signal: controller.signal
+      }).catch(() => null);
+      clearTimeout(tId);
+
+      if (resp && resp.ok) {
+        const data = await resp.json();
+        setAnalyticsData(data);
+        hasData = true;
+
+        // Background non-blocking backup to Firestore Cloud
+        const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+        setDoc(doc(db, "proposal_analytics", safeDocId), data, { merge: true }).catch(() => {});
       }
     } catch (err) {
-      console.warn("Node server API notice, checking Firestore cloud...", err);
+      console.warn("Node server API fetch notice:", err);
     }
 
-    // Parallel Sync with Firebase Firestore
-    try {
-      const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const docRef = doc(db, "proposal_analytics", safeDocId);
+    // 2. Fallback to Firestore Cloud if server API didn't respond
+    if (!hasData) {
+      try {
+        const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const snap = await Promise.race([
+          getDoc(doc(db, "proposal_analytics", safeDocId)),
+          new Promise<null>(res => setTimeout(() => res(null), 2500))
+        ]);
 
-      if (loadedData) {
-        // Backup server analytics to Firestore Cloud!
-        setDoc(docRef, loadedData, { merge: true }).catch(() => {});
-      } else {
-        // Fallback: read directly from Firestore Cloud if Node server unavailable!
-        const snap = await getDoc(docRef);
-        if (snap.exists()) {
+        if (snap && snap.exists()) {
           setAnalyticsData(snap.data() as ProposalAnalyticsData);
+        } else {
+          setAnalyticsData({
+            totalViews: 0,
+            uniqueViews: 0,
+            duplicateViews: 0,
+            deviceBreakdown: { Mobile: 0, Desktop: 0, Tablet: 0 },
+            locationBreakdown: {},
+            logs: []
+          });
         }
+      } catch (fsErr) {
+        setAnalyticsData({
+          totalViews: 0,
+          uniqueViews: 0,
+          duplicateViews: 0,
+          deviceBreakdown: { Mobile: 0, Desktop: 0, Tablet: 0 },
+          locationBreakdown: {},
+          logs: []
+        });
       }
-    } catch (fsErr) {
-      console.warn("Firestore sync notice:", fsErr);
-    } finally {
-      setIsLoadingAnalytics(false);
     }
+
+    setIsLoadingAnalytics(false);
   };
 
   // Export Analytics logs to CSV / Excel
