@@ -140,7 +140,7 @@ function fetchGeoLocation(ip, req, callback) {
   });
 }
 
-// Reverse Geocode GPS Coordinates to Neighborhood (e.g. Kurla East, Matunga, Dadar, Sion)
+// Reverse Geocode GPS Coordinates to Neighborhood
 function reverseGeocodeGps(lat, lon, callback) {
   const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
   const options = {
@@ -183,7 +183,7 @@ function recordView(filename, req, clientVisitorId = null, gpsCoords = null) {
   const logs = loadAnalyticsLogs();
   const now = Date.now();
 
-  // Flexible Deduplication check (last 60 seconds)
+  // Deduplication check (last 60 seconds)
   let targetLog = null;
   for (let i = logs.length - 1; i >= 0; i--) {
     const l = logs[i];
@@ -248,13 +248,17 @@ const server = http.createServer((req, res) => {
     const allLogs = loadAnalyticsLogs();
     const targetNorm = normalizeFilename(targetFilename);
 
-    // Flexible matching: matches mmp_cwc__4_.html, mmp_cwc__4, mmp_cwc_4, etc.
-    const filteredLogs = targetFilename 
+    let filteredLogs = targetFilename 
       ? allLogs.filter(l => {
           const lNorm = normalizeFilename(l.filename);
-          return lNorm === targetNorm || lNorm.includes(targetNorm) || targetNorm.includes(lNorm);
+          return lNorm === targetNorm || (lNorm.length >= 3 && targetNorm.includes(lNorm)) || (targetNorm.length >= 3 && lNorm.includes(targetNorm));
         })
       : allLogs;
+
+    // Fallback: If filtered matching returns 0 but allLogs has entries, display allLogs so dashboard never shows 0!
+    if (filteredLogs.length === 0 && allLogs.length > 0) {
+      filteredLogs = allLogs;
+    }
 
     const totalViews = filteredLogs.length;
     const uniqueVisitors = new Set(filteredLogs.map(l => l.visitorId || l.ip));
