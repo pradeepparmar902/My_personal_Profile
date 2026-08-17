@@ -656,9 +656,19 @@ export default function Proposals() {
                 </h3>
                 <p className="text-xs text-gray-400 font-mono mt-0.5">{analyticsItem.filename}</p>
               </div>
-              <button onClick={() => { setAnalyticsItem(null); setAnalyticsData(null); }} className="text-gray-400 hover:text-white cursor-pointer">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openAnalyticsModal(analyticsItem)}
+                  disabled={isLoadingAnalytics}
+                  className="bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/40 text-[#d4af37] font-semibold text-xs py-1.5 px-3 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Refresh analytics data"
+                >
+                  <RefreshCw size={14} className={isLoadingAnalytics ? "animate-spin" : ""} /> Refresh
+                </button>
+                <button onClick={() => { setAnalyticsItem(null); setAnalyticsData(null); }} className="text-gray-400 hover:text-white cursor-pointer p-1">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {isLoadingAnalytics ? (
