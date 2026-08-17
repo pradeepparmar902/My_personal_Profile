@@ -196,6 +196,36 @@ export default function Proposals() {
     loadCloudProposals();
   }, []);
 
+  // Auto-sync HTML file contents from IndexedDB to Firebase Firestore & Node Server
+  useEffect(() => {
+    async function autoSyncProposalsToCloud() {
+      if (proposals.length === 0) return;
+      for (const item of proposals) {
+        try {
+          const htmlContent = await getFileFromIndexedDB(item.id);
+          if (htmlContent) {
+            const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+
+            // Backup HTML to Firebase Cloud Firestore
+            setDoc(doc(db, "proposal_html_files", safeDocId), {
+              filename: item.filename,
+              htmlContent,
+              updatedAt: new Date().toISOString()
+            }, { merge: true }).catch(() => {});
+
+            // Backup HTML to Node Server
+            fetch("/api/upload-proposal", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ filename: item.filename, htmlContent })
+            }).catch(() => {});
+          }
+        } catch (e) {}
+      }
+    }
+    autoSyncProposalsToCloud();
+  }, [proposals]);
+
   const [analyticsScope, setAnalyticsScope] = useState<'current' | 'all'>('all');
 
   // Fetch Analytics Data (Primary Node Server + Firestore Cloud Permanent Storage)

@@ -362,6 +362,39 @@ function serveProposalHtml(res, filename, htmlContent, req) {
   res.end(finalHtml);
 }
 
+// Multi-Candidate Firestore Fetch for HTML Recovery
+function tryFetchProposalFromFirestore(candidates, index, localPath, res, targetFilename, req) {
+  if (index >= candidates.length) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('404 Not Found: /proposals/' + targetFilename);
+    return;
+  }
+
+  const docId = candidates[index];
+  const fsUrl = `https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_html_files/${docId}`;
+
+  https.get(fsUrl, (fsRes) => {
+    let data = '';
+    fsRes.on('data', c => { data += c; });
+    fsRes.on('end', () => {
+      try {
+        const json = JSON.parse(data);
+        const cloudHtml = json.fields?.htmlContent?.stringValue;
+        if (cloudHtml) {
+          try { fs.writeFileSync(localPath, cloudHtml, 'utf8'); } catch(e){}
+          serveProposalHtml(res, targetFilename, cloudHtml, req);
+          return;
+        }
+      } catch(e){}
+
+      // Try next candidate
+      tryFetchProposalFromFirestore(candidates, index + 1, localPath, res, targetFilename, req);
+    });
+  }).on('error', () => {
+    tryFetchProposalFromFirestore(candidates, index + 1, localPath, res, targetFilename, req);
+  });
+}
+
 const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
   if (urlPath === '/') urlPath = '/index.html';
@@ -711,30 +744,15 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
     }
 
     // 2. Fallback: Fetch Proposal HTML from Google Cloud Firestore REST API if local disk file was reset!
-    const safeDocId = targetFilename.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const fsUrl = `https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_html_files/${safeDocId}`;
+    const baseClean = targetFilename.replace(/\.html?$/i, '');
+    const candidates = [
+      targetFilename.replace(/[^a-zA-Z0-9._-]/g, '_'),
+      baseClean.replace(/[^a-zA-Z0-9._-]/g, '_'),
+      baseClean.replace(/_+/g, '_') + '.html',
+      baseClean.replace(/_+/g, '_')
+    ];
 
-    https.get(fsUrl, (fsRes) => {
-      let data = '';
-      fsRes.on('data', c => { data += c; });
-      fsRes.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          const cloudHtml = json.fields?.htmlContent?.stringValue;
-          if (cloudHtml) {
-            // Restore file back to disk
-            try { fs.writeFileSync(localProposalPath, cloudHtml, 'utf8'); } catch(e){}
-            serveProposalHtml(res, targetFilename, cloudHtml, req);
-            return;
-          }
-        } catch(e){}
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('404 Not Found: /proposals/' + targetFilename);
-      });
-    }).on('error', () => {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found: /proposals/' + targetFilename);
-    });
+    tryFetchProposalFromFirestore(candidates, 0, localProposalPath, res, targetFilename, req);
     return;
   }
 
