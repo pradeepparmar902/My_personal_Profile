@@ -29,7 +29,6 @@ if (!fs.existsSync(COVERS_DIR))    fs.mkdirSync(COVERS_DIR,    { recursive: true
 if (!fs.existsSync(WRAPPERS_DIR))  fs.mkdirSync(WRAPPERS_DIR,  { recursive: true });
 if (!fs.existsSync(PROPOSALS_DIR)) fs.mkdirSync(PROPOSALS_DIR, { recursive: true });
 
-// Possible locations for the main static dist folder
 const possibleDistPaths = [
   path.join(__dirname, 'dist'),
   path.join(__dirname, '.builds', 'source', 'repository', 'dist'),
@@ -43,7 +42,7 @@ function getHost(req) {
   return req.headers['x-forwarded-host'] || req.headers.host || 'pradeepparmar.com';
 }
 
-// ── Analytics Logging & Geolocation Helpers ─────────────────────────────────
+// ── Analytics & GPS Neighborhood Geolocation ───────────────────────────────
 const ipGeoCache = new Map();
 
 function loadAnalyticsLogs() {
@@ -93,12 +92,12 @@ function fetchGeoLocation(ip, req, callback) {
   const cfCity    = req.headers['cf-ipcity'];
   const cfCountry = req.headers['cf-ipcountry'];
   if (cfCity || cfCountry) {
-    callback({ city: cfCity || 'Unknown City', region: '', country: cfCountry || 'Unknown Country', countryCode: cfCountry || '' });
+    callback({ city: cfCity || 'Mumbai', region: 'Maharashtra', country: cfCountry || 'India', countryCode: cfCountry || 'IN', neighborhood: '' });
     return;
   }
 
   if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
-    callback({ city: 'Localhost', region: '', country: 'Local Network', countryCode: 'LOCAL' });
+    callback({ city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN', neighborhood: 'Central Hub' });
     return;
   }
 
@@ -107,7 +106,6 @@ function fetchGeoLocation(ip, req, callback) {
     return;
   }
 
-  // Asynchronously query ip-api.com
   const reqUrl = `http://ip-api.com/json/${ip}?fields=status,country,countryCode,regionName,city`;
   http.get(reqUrl, (res) => {
     let data = '';
@@ -117,26 +115,54 @@ function fetchGeoLocation(ip, req, callback) {
         const json = JSON.parse(data);
         if (json.status === 'success') {
           const loc = {
-            city: json.city || 'Unknown City',
-            region: json.regionName || '',
-            country: json.country || 'Unknown Country',
-            countryCode: json.countryCode || ''
+            city: json.city || 'Mumbai',
+            region: json.regionName || 'Maharashtra',
+            country: json.country || 'India',
+            countryCode: json.countryCode || 'IN',
+            neighborhood: ''
           };
           ipGeoCache.set(ip, loc);
           callback(loc);
           return;
         }
       } catch (e) {}
-      const fallback = { city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN' };
+      const fallback = { city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN', neighborhood: '' };
       ipGeoCache.set(ip, fallback);
       callback(fallback);
     });
   }).on('error', () => {
-    callback({ city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN' });
+    callback({ city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN', neighborhood: '' });
   });
 }
 
-function recordView(filename, req, clientVisitorId = null) {
+// Reverse Geocode GPS Coordinates to Neighborhood (Matunga, Dadar, Sion, etc.)
+function reverseGeocodeGps(lat, lon, callback) {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
+  const options = {
+    headers: { 'User-Agent': 'PradeepParmarProposals/1.0' }
+  };
+  https.get(url, options, (res) => {
+    let data = '';
+    res.on('data', chunk => { data += chunk; });
+    res.on('end', () => {
+      try {
+        const json = JSON.parse(data);
+        if (json && json.address) {
+          const addr = json.address;
+          const neighborhood = addr.suburb || addr.neighbourhood || addr.quarter || addr.residential || addr.subdistrict || addr.city_district || '';
+          const city = addr.city || addr.town || addr.county || 'Mumbai';
+          const state = addr.state || 'Maharashtra';
+          const country = addr.country || 'India';
+          callback({ neighborhood, city, region: state, country });
+          return;
+        }
+      } catch (e) {}
+      callback(null);
+    });
+  }).on('error', () => callback(null));
+}
+
+function recordView(filename, req, clientVisitorId = null, gpsCoords = null) {
   const ua = req.headers['user-agent'] || '';
   if (/bot|crawler|spider|facebook|whatsapp|telegram|slack|linkedin|twitter/i.test(ua)) {
     return;
@@ -146,6 +172,8 @@ function recordView(filename, req, clientVisitorId = null) {
   const ip = rawIp.split(',')[0].trim();
   const visitorId = clientVisitorId || `${ip}_${ua.slice(0, 30)}`;
   const { device, browser, os } = parseUserAgent(ua);
+
+  const logs = loadAnalyticsLogs();
 
   const newLog = {
     id: 'view_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -157,17 +185,27 @@ function recordView(filename, req, clientVisitorId = null) {
     browser,
     os,
     visitorId,
-    location: { city: 'Detecting...', region: '', country: 'Detecting...', countryCode: '' }
+    location: { city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN', neighborhood: '' }
   };
 
-  const logs = loadAnalyticsLogs();
   logs.push(newLog);
   saveAnalyticsLogs(logs);
 
-  // Asynchronously resolve real location and update log file
-  fetchGeoLocation(ip, req, (loc) => {
-    newLog.location = loc;
+  // 1. IP Geolocation
+  fetchGeoLocation(ip, req, (ipLoc) => {
+    newLog.location = { ...newLog.location, ...ipLoc };
     saveAnalyticsLogs(logs);
+
+    // 2. If GPS coordinates were sent from browser, reverse geocode to Neighborhood (Matunga/Dadar/Sion)
+    if (gpsCoords && gpsCoords.lat && gpsCoords.lon) {
+      reverseGeocodeGps(gpsCoords.lat, gpsCoords.lon, (gpsLoc) => {
+        if (gpsLoc) {
+          newLog.location.neighborhood = gpsLoc.neighborhood || newLog.location.neighborhood;
+          if (gpsLoc.city) newLog.location.city = gpsLoc.city;
+          saveAnalyticsLogs(logs);
+        }
+      });
+    }
   });
 
   return newLog;
@@ -201,9 +239,11 @@ const server = http.createServer((req, res) => {
       if (deviceBreakdown[l.device] !== undefined) deviceBreakdown[l.device]++;
       else deviceBreakdown.Desktop++;
 
-      if (l.location && l.location.city && l.location.city !== 'Detecting...') {
-        const locName = `${l.location.city}, ${l.location.country}`;
-        locationBreakdown[locName] = (locationBreakdown[locName] || 0) + 1;
+      if (l.location) {
+        const areaStr = l.location.neighborhood 
+          ? `${l.location.neighborhood}, ${l.location.city}` 
+          : `${l.location.city || 'Mumbai'}, ${l.location.country || 'India'}`;
+        locationBreakdown[areaStr] = (locationBreakdown[areaStr] || 0) + 1;
       }
     });
 
@@ -222,16 +262,17 @@ const server = http.createServer((req, res) => {
   }
 
   // ────────────────────────────────────────────────────────────────
-  // API: POST /api/track-proposal-view
+  // API: POST /api/track-proposal-view (Receives GPS lat/lon & visitorId)
   // ────────────────────────────────────────────────────────────────
   if (req.method === 'POST' && urlPath === '/api/track-proposal-view') {
     let body = '';
     req.on('data', c => { body += c; });
     req.on('end', () => {
       try {
-        const { filename, visitorId } = JSON.parse(body);
+        const { filename, visitorId, lat, lon } = JSON.parse(body);
         if (filename) {
-          recordView(filename, req, visitorId);
+          const gpsCoords = (lat && lon) ? { lat, lon } : null;
+          recordView(filename, req, visitorId, gpsCoords);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -261,7 +302,7 @@ const server = http.createServer((req, res) => {
   }
 
   // ────────────────────────────────────────────────────────────────
-  // SERVE cover images + wrappers: /covers/**  → covers_store/**
+  // SERVE cover images + wrappers: /covers/**
   // ────────────────────────────────────────────────────────────────
   if (urlPath.startsWith('/covers/')) {
     const relativePath = urlPath.slice('/covers/'.length);
@@ -409,7 +450,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   }
 
   // ────────────────────────────────────────────────────────────────
-  // STATIC FILE SERVING & PERSISTENT PROPOSAL RESOLUTION
+  // STATIC FILE SERVING & AUTOMATIC GPS TRACKING SCRIPT INJECTION
   // ────────────────────────────────────────────────────────────────
   let filePath = null;
 
@@ -453,29 +494,79 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
     return;
   }
 
-  const extname     = String(path.extname(filePath)).toLowerCase();
+  const extname = String(path.extname(filePath)).toLowerCase();
   const contentType = MIME_TYPES[extname] || 'application/octet-stream';
-
   const isProposalRequest = urlPath.startsWith('/proposals/') && !urlPath.endsWith('-card.html');
+
   if (isProposalRequest) {
     const targetFilename = path.basename(filePath);
     recordView(targetFilename, req);
+
+    // Read HTML file and inject automatic GPS Neighborhood tracking script
+    fs.readFile(filePath, 'utf8', (err, htmlContent) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('500 Error');
+        return;
+      }
+
+      // Inject lightweight GPS tracking script before </body>
+      const gpsTrackingScript = `
+<script>
+(function() {
+  var fn = ${JSON.stringify(targetFilename)};
+  var vKey = 'pp_vid_' + fn;
+  var vid = localStorage.getItem(vKey) || ('v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
+  localStorage.setItem(vKey, vid);
+
+  function sendTrack(lat, lon) {
+    try {
+      fetch('/api/track-proposal-view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: fn, visitorId: vid, lat: lat || null, lon: lon || null })
+      }).catch(function(){});
+    } catch(e){}
   }
 
-  const cacheHeader = isProposalRequest 
-    ? 'no-cache, no-store, must-revalidate, max-age=0' 
-    : 'public, max-age=86400';
+  sendTrack(null, null);
+
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      if (pos && pos.coords) {
+        sendTrack(pos.coords.latitude, pos.coords.longitude);
+      }
+    }, function(){}, { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 });
+  }
+})();
+</script>`;
+
+      let finalHtml = htmlContent;
+      if (finalHtml.includes('</body>')) {
+        finalHtml = finalHtml.replace('</body>', gpsTrackingScript + '</body>');
+      } else {
+        finalHtml += gpsTrackingScript;
+      }
+
+      res.writeHead(200, { 
+        'Content-Type': 'text/html',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      res.end(finalHtml);
+    });
+    return;
+  }
 
   res.writeHead(200, { 
     'Content-Type': contentType,
-    'Cache-Control': cacheHeader,
-    'Pragma': 'no-cache',
-    'Expires': '0'
+    'Cache-Control': 'public, max-age=86400'
   });
   fs.createReadStream(filePath).pipe(res);
 });
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Analytics API with Geolocation ready.`);
+  console.log(`Analytics with GPS Neighborhood Geolocation (Matunga/Dadar/Sion) ready.`);
 });
