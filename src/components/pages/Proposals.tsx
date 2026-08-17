@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, 
   Globe, Image, X, ArrowRight, Mail, Download, RefreshCw, HelpCircle, 
-  BarChart3, Users, Repeat, Smartphone, Laptop, Clock, MapPin
+  BarChart3, Users, Repeat, Smartphone, Laptop, Clock, MapPin, Database
 } from "lucide-react";
+import { db, doc, setDoc, getDoc } from "../../lib/firebase";
 
 export interface ProposalItem {
   id: string;
@@ -156,18 +157,38 @@ export default function Proposals() {
     } catch (e) { console.warn(e); }
   }, [proposals]);
 
-  // Fetch Analytics Data
+  // Fetch Analytics Data (Primary Node Server + Firestore Cloud Sync)
   const openAnalyticsModal = async (item: ProposalItem) => {
     setAnalyticsItem(item);
     setIsLoadingAnalytics(true);
+    let loadedData: ProposalAnalyticsData | null = null;
     try {
       const resp = await fetch(`/api/proposal-analytics?filename=${encodeURIComponent(item.filename)}`);
       if (resp.ok) {
-        const data = await resp.json();
-        setAnalyticsData(data);
+        loadedData = await resp.json();
+        setAnalyticsData(loadedData);
       }
     } catch (err) {
-      console.error("Failed to fetch analytics:", err);
+      console.warn("Node server API notice, checking Firestore cloud...", err);
+    }
+
+    // Parallel Sync with Firebase Firestore
+    try {
+      const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const docRef = doc(db, "proposal_analytics", safeDocId);
+
+      if (loadedData) {
+        // Backup server analytics to Firestore Cloud!
+        setDoc(docRef, loadedData, { merge: true }).catch(() => {});
+      } else {
+        // Fallback: read directly from Firestore Cloud if Node server unavailable!
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          setAnalyticsData(snap.data() as ProposalAnalyticsData);
+        }
+      }
+    } catch (fsErr) {
+      console.warn("Firestore sync notice:", fsErr);
     } finally {
       setIsLoadingAnalytics(false);
     }
