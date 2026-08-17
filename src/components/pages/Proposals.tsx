@@ -154,8 +154,34 @@ export default function Proposals() {
         id, filename, title, description, imageUrl, date, wrapperUrl
       }));
       localStorage.setItem("pp_proposals_meta_list", JSON.stringify(cleanMeta));
+
+      // Backup list to Firestore Cloud so Incognito & new devices see all proposals!
+      if (cleanMeta.length > 0) {
+        setDoc(doc(db, "hosted_proposals", "main_list"), { items: cleanMeta }, { merge: true }).catch(() => {});
+      }
     } catch (e) { console.warn(e); }
   }, [proposals]);
+
+  // Load Cloud Proposals on Component Mount (for Incognito Mode & New Devices)
+  useEffect(() => {
+    async function loadCloudProposals() {
+      try {
+        const snap = await getDoc(doc(db, "hosted_proposals", "main_list"));
+        if (snap.exists() && snap.data()?.items) {
+          const cloudItems: ProposalItem[] = snap.data().items;
+          setProposals(prev => {
+            if (prev.length === 0) return cloudItems;
+            const existingIds = new Set(prev.map(p => p.id));
+            const newCloudItems = cloudItems.filter(ci => !existingIds.has(ci.id));
+            return [...prev, ...newCloudItems];
+          });
+        }
+      } catch (err) {
+        console.warn("Cloud proposals sync notice:", err);
+      }
+    }
+    loadCloudProposals();
+  }, []);
 
   // Fetch Analytics Data (Primary Node Server + Firestore Cloud Sync)
   const openAnalyticsModal = async (item: ProposalItem) => {
