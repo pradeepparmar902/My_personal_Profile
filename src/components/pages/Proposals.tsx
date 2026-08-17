@@ -478,6 +478,18 @@ export default function Proposals() {
         });
       } catch {}
 
+      // Backup full HTML Content to Firebase Cloud Firestore for permanent zero-404 persistence
+      try {
+        const safeDocId = pending.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+        await setDoc(doc(db, "proposal_html_files", safeDocId), {
+          filename: pending.filename,
+          htmlContent: pending.htmlContent,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (fsErr) {
+        console.warn("Firestore HTML backup notice:", fsErr);
+      }
+
       const updatedProposal: ProposalItem = {
         id: propId,
         filename: pending.filename,

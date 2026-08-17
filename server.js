@@ -244,6 +244,124 @@ function recordView(filename, req, clientVisitorId = null, gpsCoords = null, eng
   return targetLog;
 }
 
+function serveProposalHtml(res, filename, htmlContent, req) {
+  const engagementTrackingScript = `
+<script>
+(function() {
+  var fn = ${JSON.stringify(filename)};
+  var vKey = 'pp_vid_' + fn;
+  var vid = localStorage.getItem(vKey) || ('v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
+  localStorage.setItem(vKey, vid);
+
+  var startTime = Date.now();
+  var totalActiveSeconds = 0;
+  var maxScroll = 0;
+  var isVisible = true;
+
+  function updateScroll() {
+    var h = document.documentElement, b = document.body;
+    var st = 'scrollTop' in h ? h.scrollTop : b.scrollTop;
+    var sh = 'scrollHeight' in h ? h.scrollHeight : b.scrollHeight;
+    var ch = h.clientHeight;
+    var percent = Math.round((st / Math.max(1, (sh - ch))) * 100);
+    if (percent > maxScroll) maxScroll = Math.min(100, Math.max(0, percent));
+  }
+
+  window.addEventListener('scroll', updateScroll, { passive: true });
+  updateScroll();
+
+  var timer = setInterval(function() {
+    if (isVisible) totalActiveSeconds += 3;
+    if (totalActiveSeconds % 12 === 0 || totalActiveSeconds === 3) {
+      sendHeartbeat();
+    }
+  }, 3000);
+
+  document.addEventListener('visibilitychange', function() {
+    isVisible = !document.hidden;
+    if (document.hidden) sendHeartbeat();
+  });
+
+  function sendHeartbeat(lat, lon) {
+    try {
+      var payload = JSON.stringify({
+        filename: fn,
+        visitorId: vid,
+        lat: lat || null,
+        lon: lon || null,
+        timeSpentSeconds: totalActiveSeconds,
+        maxScrollPercent: maxScroll
+      });
+
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/track-proposal-view', payload);
+      } else {
+        fetch('/api/track-proposal-view', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload
+        }).catch(function(){});
+      }
+
+      // Direct Firebase Cloud Firestore REST Backup
+      var fsUrl = 'https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs';
+      var ua = navigator.userAgent || '';
+      var dev = /mobile/i.test(ua)?'Mobile':/ipad|tablet/i.test(ua)?'Tablet':'Desktop';
+      var br  = /chrome/i.test(ua)?'Chrome':/safari/i.test(ua)?'Safari':'Browser';
+      var os  = /windows/i.test(ua)?'Windows':/mac/i.test(ua)?'macOS':/android/i.test(ua)?'Android':/iphone|ipad/i.test(ua)?'iOS':'Linux';
+      
+      var fsBody = JSON.stringify({
+        fields: {
+          id: { stringValue: 'view_' + Date.now() + '_' + vid.slice(-4) },
+          filename: { stringValue: fn },
+          timestamp: { stringValue: new Date().toISOString() },
+          visitorId: { stringValue: vid },
+          device: { stringValue: dev },
+          browser: { stringValue: br },
+          os: { stringValue: os },
+          ip: { stringValue: 'Client View' },
+          timeSpentSeconds: { integerValue: String(totalActiveSeconds) },
+          maxScrollPercent: { integerValue: String(maxScroll) }
+        }
+      });
+
+      fetch(fsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: fsBody
+      }).catch(function(){});
+
+    } catch(e){}
+  }
+
+  sendHeartbeat(null, null);
+
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      if (pos && pos.coords) {
+        sendHeartbeat(pos.coords.latitude, pos.coords.longitude);
+      }
+    }, function(){}, { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 });
+  }
+})();
+</script>`;
+
+  let finalHtml = htmlContent;
+  if (finalHtml.includes('</body>')) {
+    finalHtml = finalHtml.replace('</body>', engagementTrackingScript + '</body>');
+  } else {
+    finalHtml += engagementTrackingScript;
+  }
+
+  res.writeHead(200, { 
+    'Content-Type': 'text/html',
+    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  res.end(finalHtml);
+}
+
 const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
   if (urlPath === '/') urlPath = '/index.html';
@@ -545,7 +663,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   }
 
   // ────────────────────────────────────────────────────────────────
-  // STATIC FILE SERVING & ENGAGEMENT + DIRECT FIREBASE CLOUD TRACKING
+  // STATIC FILE SERVING & PROPOSAL CLOUD RECOVERY FALLBACK (ZERO 404)
   // ────────────────────────────────────────────────────────────────
   let filePath = null;
 
@@ -571,6 +689,55 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
     }
   }
 
+  const isProposalRequest = urlPath.startsWith('/proposals/') && !urlPath.endsWith('-card.html');
+
+  if (isProposalRequest) {
+    const targetFilename = path.basename(urlPath.split('?')[0]);
+    recordView(targetFilename, req);
+
+    const localProposalPath = path.join(PROPOSALS_DIR, targetFilename);
+
+    // 1. If file exists on local disk, serve it immediately
+    if (fs.existsSync(localProposalPath) && fs.statSync(localProposalPath).isFile()) {
+      fs.readFile(localProposalPath, 'utf8', (err, htmlContent) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end('500 Error');
+          return;
+        }
+        serveProposalHtml(res, targetFilename, htmlContent, req);
+      });
+      return;
+    }
+
+    // 2. Fallback: Fetch Proposal HTML from Google Cloud Firestore REST API if local disk file was reset!
+    const safeDocId = targetFilename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fsUrl = `https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_html_files/${safeDocId}`;
+
+    https.get(fsUrl, (fsRes) => {
+      let data = '';
+      fsRes.on('data', c => { data += c; });
+      fsRes.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const cloudHtml = json.fields?.htmlContent?.stringValue;
+          if (cloudHtml) {
+            // Restore file back to disk
+            try { fs.writeFileSync(localProposalPath, cloudHtml, 'utf8'); } catch(e){}
+            serveProposalHtml(res, targetFilename, cloudHtml, req);
+            return;
+          }
+        } catch(e){}
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('404 Not Found: /proposals/' + targetFilename);
+      });
+    }).on('error', () => {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found: /proposals/' + targetFilename);
+    });
+    return;
+  }
+
   if (!filePath) {
     if (path.extname(urlPath).length > 0) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -591,137 +758,6 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 
   const extname = String(path.extname(filePath)).toLowerCase();
   const contentType = MIME_TYPES[extname] || 'application/octet-stream';
-  const isProposalRequest = urlPath.startsWith('/proposals/') && !urlPath.endsWith('-card.html');
-
-  if (isProposalRequest) {
-    const targetFilename = path.basename(filePath);
-    recordView(targetFilename, req);
-
-    fs.readFile(filePath, 'utf8', (err, htmlContent) => {
-      if (err) {
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end('500 Error');
-        return;
-      }
-
-      const engagementTrackingScript = `
-<script>
-(function() {
-  var fn = ${JSON.stringify(targetFilename)};
-  var vKey = 'pp_vid_' + fn;
-  var vid = localStorage.getItem(vKey) || ('v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
-  localStorage.setItem(vKey, vid);
-
-  var startTime = Date.now();
-  var totalActiveSeconds = 0;
-  var maxScroll = 0;
-  var isVisible = true;
-
-  function updateScroll() {
-    var h = document.documentElement, b = document.body;
-    var st = 'scrollTop' in h ? h.scrollTop : b.scrollTop;
-    var sh = 'scrollHeight' in h ? h.scrollHeight : b.scrollHeight;
-    var ch = h.clientHeight;
-    var percent = Math.round((st / Math.max(1, (sh - ch))) * 100);
-    if (percent > maxScroll) maxScroll = Math.min(100, Math.max(0, percent));
-  }
-
-  window.addEventListener('scroll', updateScroll, { passive: true });
-  updateScroll();
-
-  var timer = setInterval(function() {
-    if (isVisible) totalActiveSeconds += 3;
-    if (totalActiveSeconds % 12 === 0 || totalActiveSeconds === 3) {
-      sendHeartbeat();
-    }
-  }, 3000);
-
-  document.addEventListener('visibilitychange', function() {
-    isVisible = !document.hidden;
-    if (document.hidden) sendHeartbeat();
-  });
-
-  function sendHeartbeat(lat, lon) {
-    try {
-      var payload = JSON.stringify({
-        filename: fn,
-        visitorId: vid,
-        lat: lat || null,
-        lon: lon || null,
-        timeSpentSeconds: totalActiveSeconds,
-        maxScrollPercent: maxScroll
-      });
-
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/track-proposal-view', payload);
-      } else {
-        fetch('/api/track-proposal-view', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: payload
-        }).catch(function(){});
-      }
-
-      // Direct Firebase Cloud Firestore REST Backup
-      var fsUrl = 'https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs';
-      var ua = navigator.userAgent || '';
-      var dev = /mobile/i.test(ua)?'Mobile':/ipad|tablet/i.test(ua)?'Tablet':'Desktop';
-      var br  = /chrome/i.test(ua)?'Chrome':/safari/i.test(ua)?'Safari':'Browser';
-      var os  = /windows/i.test(ua)?'Windows':/mac/i.test(ua)?'macOS':/android/i.test(ua)?'Android':/iphone|ipad/i.test(ua)?'iOS':'Linux';
-      
-      var fsBody = JSON.stringify({
-        fields: {
-          id: { stringValue: 'view_' + Date.now() + '_' + vid.slice(-4) },
-          filename: { stringValue: fn },
-          timestamp: { stringValue: new Date().toISOString() },
-          visitorId: { stringValue: vid },
-          device: { stringValue: dev },
-          browser: { stringValue: br },
-          os: { stringValue: os },
-          ip: { stringValue: 'Client View' },
-          timeSpentSeconds: { integerValue: String(totalActiveSeconds) },
-          maxScrollPercent: { integerValue: String(maxScroll) }
-        }
-      });
-
-      fetch(fsUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: fsBody
-      }).catch(function(){});
-
-    } catch(e){}
-  }
-
-  sendHeartbeat(null, null);
-
-  if ('geolocation' in navigator) {
-    navigator.geolocation.getCurrentPosition(function(pos) {
-      if (pos && pos.coords) {
-        sendHeartbeat(pos.coords.latitude, pos.coords.longitude);
-      }
-    }, function(){}, { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 });
-  }
-})();
-</script>`;
-
-      let finalHtml = htmlContent;
-      if (finalHtml.includes('</body>')) {
-        finalHtml = finalHtml.replace('</body>', engagementTrackingScript + '</body>');
-      } else {
-        finalHtml += engagementTrackingScript;
-      }
-
-      res.writeHead(200, { 
-        'Content-Type': 'text/html',
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      });
-      res.end(finalHtml);
-    });
-    return;
-  }
 
   res.writeHead(200, { 
     'Content-Type': contentType,
