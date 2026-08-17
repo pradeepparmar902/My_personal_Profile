@@ -45,6 +45,11 @@ function getHost(req) {
 // ── Analytics & GPS Neighborhood Geolocation ───────────────────────────────
 const ipGeoCache = new Map();
 
+function normalizeFilename(fn) {
+  if (!fn) return '';
+  return fn.toLowerCase().replace(/\.html?$/i, '').replace(/[^a-z0-9]/g, '');
+}
+
 function loadAnalyticsLogs() {
   try {
     if (fs.existsSync(LOGS_FILE_PATH)) {
@@ -171,18 +176,19 @@ function recordView(filename, req, clientVisitorId = null, gpsCoords = null) {
   const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
   const ip = rawIp.split(',')[0].trim();
   const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const targetNorm = normalizeFilename(safeFilename);
   const visitorId = clientVisitorId || `${ip}_${ua.slice(0, 30)}`;
   const { device, browser, os } = parseUserAgent(ua);
 
   const logs = loadAnalyticsLogs();
   const now = Date.now();
 
-  // Deduplication check: look for recent view log from same visitor & file in the last 60 seconds
+  // Flexible Deduplication check (last 60 seconds)
   let targetLog = null;
   for (let i = logs.length - 1; i >= 0; i--) {
     const l = logs[i];
     const logTime = new Date(l.timestamp).getTime();
-    if (l.filename === safeFilename && (l.visitorId === visitorId || l.ip === ip) && (now - logTime) < 60000) {
+    if (normalizeFilename(l.filename) === targetNorm && (l.visitorId === visitorId || l.ip === ip) && (now - logTime) < 60000) {
       targetLog = l;
       break;
     }
@@ -213,7 +219,7 @@ function recordView(filename, req, clientVisitorId = null, gpsCoords = null) {
     targetLog.location = { ...targetLog.location, ...ipLoc };
     saveAnalyticsLogs(logs);
 
-    // 2. If GPS coordinates were sent from browser, reverse geocode to Neighborhood (e.g. Kurla East, Matunga, Dadar)
+    // 2. Reverse Geocode GPS if available
     if (gpsCoords && gpsCoords.lat && gpsCoords.lon) {
       reverseGeocodeGps(gpsCoords.lat, gpsCoords.lon, (gpsLoc) => {
         if (gpsLoc) {
@@ -240,8 +246,14 @@ const server = http.createServer((req, res) => {
     const targetFilename = parsedUrl.searchParams.get('filename');
 
     const allLogs = loadAnalyticsLogs();
+    const targetNorm = normalizeFilename(targetFilename);
+
+    // Flexible matching: matches mmp_cwc__4_.html, mmp_cwc__4, mmp_cwc_4, etc.
     const filteredLogs = targetFilename 
-      ? allLogs.filter(l => l.filename === targetFilename.replace(/[^a-zA-Z0-9._-]/g, '_'))
+      ? allLogs.filter(l => {
+          const lNorm = normalizeFilename(l.filename);
+          return lNorm === targetNorm || lNorm.includes(targetNorm) || targetNorm.includes(lNorm);
+        })
       : allLogs;
 
     const totalViews = filteredLogs.length;
