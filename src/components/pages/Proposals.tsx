@@ -173,6 +173,38 @@ export default function Proposals() {
     }
   };
 
+  // Export Analytics logs to CSV / Excel
+  const handleExportCsv = (item: ProposalItem) => {
+    if (!analyticsData || !analyticsData.logs || analyticsData.logs.length === 0) {
+      alert("No view logs available to export yet.");
+      return;
+    }
+
+    const headers = ["Timestamp", "Filename", "IP Address", "Device", "Browser", "OS", "Neighborhood", "City", "Country"];
+    const rows = analyticsData.logs.map(log => [
+      `"${new Date(log.timestamp).toLocaleString()}"`,
+      `"${log.filename}"`,
+      `"${log.ip}"`,
+      `"${log.device}"`,
+      `"${log.browser}"`,
+      `"${log.os}"`,
+      `"${log.location?.neighborhood || ""}"`,
+      `"${log.location?.city || "Mumbai"}"`,
+      `"${log.location?.country || "India"}"`
+    ]);
+
+    const csvString = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Analytics_Logs_${item.filename.replace(/\.html?$/i, "")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Upload New File
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -657,6 +689,14 @@ export default function Proposals() {
                 <p className="text-xs text-gray-400 font-mono mt-0.5">{analyticsItem.filename}</p>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleExportCsv(analyticsItem)}
+                  disabled={!analyticsData || !analyticsData.logs || analyticsData.logs.length === 0}
+                  className="bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-semibold text-xs py-1.5 px-3 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+                  title="Export view logs to CSV / Excel file"
+                >
+                  <Download size={14} /> Export CSV
+                </button>
                 <button
                   onClick={() => openAnalyticsModal(analyticsItem)}
                   disabled={isLoadingAnalytics}
