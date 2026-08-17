@@ -514,7 +514,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   }
 
   // ────────────────────────────────────────────────────────────────
-  // STATIC FILE SERVING & ENGAGEMENT + GPS TRACKING SCRIPT INJECTION
+  // STATIC FILE SERVING & ENGAGEMENT + DIRECT FIREBASE CLOUD TRACKING
   // ────────────────────────────────────────────────────────────────
   let filePath = null;
 
@@ -630,6 +630,35 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
           body: payload
         }).catch(function(){});
       }
+
+      // Direct Firebase Cloud Firestore REST Backup
+      var fsUrl = 'https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs';
+      var ua = navigator.userAgent || '';
+      var dev = /mobile/i.test(ua)?'Mobile':/ipad|tablet/i.test(ua)?'Tablet':'Desktop';
+      var br  = /chrome/i.test(ua)?'Chrome':/safari/i.test(ua)?'Safari':'Browser';
+      var os  = /windows/i.test(ua)?'Windows':/mac/i.test(ua)?'macOS':/android/i.test(ua)?'Android':/iphone|ipad/i.test(ua)?'iOS':'Linux';
+      
+      var fsBody = JSON.stringify({
+        fields: {
+          id: { stringValue: 'view_' + Date.now() + '_' + vid.slice(-4) },
+          filename: { stringValue: fn },
+          timestamp: { stringValue: new Date().toISOString() },
+          visitorId: { stringValue: vid },
+          device: { stringValue: dev },
+          browser: { stringValue: br },
+          os: { stringValue: os },
+          ip: { stringValue: 'Client View' },
+          timeSpentSeconds: { integerValue: String(totalActiveSeconds) },
+          maxScrollPercent: { integerValue: String(maxScroll) }
+        }
+      });
+
+      fetch(fsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: fsBody
+      }).catch(function(){});
+
     } catch(e){}
   }
 

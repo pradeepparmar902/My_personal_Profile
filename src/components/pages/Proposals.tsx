@@ -236,13 +236,34 @@ export default function Proposals() {
       console.warn("Firestore master logs notice:", fsErr);
     }
 
-    // Combine Server + Firebase Cloud logs to ensure ZERO data is ever lost!
-    const combinedLogsMap = new Map<string, AnalyticsLog>();
-
-    if (serverData && serverData.logs) {
-      serverData.logs.forEach(l => combinedLogsMap.set(l.id || (l.timestamp + l.ip), l));
-    }
-    cloudMasterLogs.forEach(l => combinedLogsMap.set(l.id || (l.timestamp + l.ip), l));
+    // 3. Fetch direct from Firebase REST API for proposal_analytics_logs collection
+    try {
+      const restResp = await fetch("https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs").catch(() => null);
+      if (restResp && restResp.ok) {
+        const json = await restResp.json();
+        if (json && json.documents) {
+          json.documents.forEach((d: any) => {
+            const f = d.fields || {};
+            const itemLog: AnalyticsLog = {
+              id: f.id?.stringValue || d.name,
+              filename: f.filename?.stringValue || "",
+              timestamp: f.timestamp?.stringValue || new Date().toISOString(),
+              visitorId: f.visitorId?.stringValue || "",
+              ip: f.ip?.stringValue || "Client View",
+              userAgent: "",
+              device: f.device?.stringValue || "Desktop",
+              browser: f.browser?.stringValue || "Browser",
+              os: f.os?.stringValue || "Unknown",
+              timeSpentSeconds: parseInt(f.timeSpentSeconds?.integerValue || "0"),
+              maxScrollPercent: parseInt(f.maxScrollPercent?.integerValue || "0")
+            };
+            if (itemLog.filename) {
+              combinedLogsMap.set(itemLog.id, itemLog);
+            }
+          });
+        }
+      }
+    } catch (e) {}
 
     const masterLogs = Array.from(combinedLogsMap.values()).sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
