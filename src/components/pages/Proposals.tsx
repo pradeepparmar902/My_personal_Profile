@@ -268,7 +268,7 @@ export default function Proposals() {
 
     // 3. Fetch direct from Firebase REST API for proposal_analytics_logs collection
     try {
-      const restResp = await fetch("https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs").catch(() => null);
+      const restResp = await fetch("https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs?key=AIzaSyCVMh12zjoo0N49vi6JBSH9sPTulZLetI4").catch(() => null);
       if (restResp && restResp.ok) {
         const json = await restResp.json();
         if (json && json.documents) {

@@ -4,6 +4,7 @@ const fs    = require('fs');
 const path  = require('path');
 
 const PORT = process.env.PORT || 3000;
+const FIREBASE_API_KEY = "AIzaSyCVMh12zjoo0N49vi6JBSH9sPTulZLetI4";
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -303,8 +304,8 @@ function serveProposalHtml(res, filename, htmlContent, req) {
         }).catch(function(){});
       }
 
-      // Direct Firebase Cloud Firestore REST Backup
-      var fsUrl = 'https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs';
+      // Direct Authorized Firebase Cloud Firestore REST Backup
+      var fsUrl = 'https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs?key=${FIREBASE_API_KEY}';
       var ua = navigator.userAgent || '';
       var dev = /mobile/i.test(ua)?'Mobile':/ipad|tablet/i.test(ua)?'Tablet':'Desktop';
       var br  = /chrome/i.test(ua)?'Chrome':/safari/i.test(ua)?'Safari':'Browser';
@@ -362,7 +363,7 @@ function serveProposalHtml(res, filename, htmlContent, req) {
   res.end(finalHtml);
 }
 
-// Multi-Candidate Firestore Fetch for HTML Recovery
+// Multi-Candidate Authorized Firestore Fetch for HTML Recovery
 function tryFetchProposalFromFirestore(candidates, index, localPath, res, targetFilename, req) {
   if (index >= candidates.length) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -371,7 +372,7 @@ function tryFetchProposalFromFirestore(candidates, index, localPath, res, target
   }
 
   const docId = candidates[index];
-  const fsUrl = `https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_html_files/${docId}`;
+  const fsUrl = `https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_html_files/${docId}?key=${FIREBASE_API_KEY}`;
 
   https.get(fsUrl, (fsRes) => {
     let data = '';
