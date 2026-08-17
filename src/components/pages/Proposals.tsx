@@ -196,14 +196,17 @@ export default function Proposals() {
     loadCloudProposals();
   }, []);
 
-  // Fetch Analytics Data (Primary Node Server + Firestore Cloud Sync)
+  const [analyticsScope, setAnalyticsScope] = useState<'current' | 'all'>('all');
+
+  // Fetch Analytics Data (Primary Node Server + Firestore Cloud Permanent Storage)
   const openAnalyticsModal = async (item: ProposalItem) => {
     setAnalyticsItem(item);
     setIsLoadingAnalytics(true);
 
-    let hasData = false;
+    let serverData: ProposalAnalyticsData | null = null;
+    let cloudMasterLogs: AnalyticsLog[] = [];
 
-    // 1. Attempt fast fetch from Node Server API with 3.5s timeout
+    // 1. Attempt fetch from Node Server API
     try {
       const controller = new AbortController();
       const tId = setTimeout(() => controller.abort(), 3500);
@@ -214,51 +217,90 @@ export default function Proposals() {
       clearTimeout(tId);
 
       if (resp && resp.ok) {
-        const data = await resp.json();
-        setAnalyticsData(data);
-        hasData = true;
-
-        // Background non-blocking backup to Firestore Cloud
-        const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-        setDoc(doc(db, "proposal_analytics", safeDocId), data, { merge: true }).catch(() => {});
+        serverData = await resp.json();
       }
     } catch (err) {
       console.warn("Node server API fetch notice:", err);
     }
 
-    // 2. Fallback to Firestore Cloud if server API didn't respond
-    if (!hasData) {
-      try {
-        const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const snap = await Promise.race([
-          getDoc(doc(db, "proposal_analytics", safeDocId)),
-          new Promise<null>(res => setTimeout(() => res(null), 2500))
-        ]);
-
-        if (snap && snap.exists()) {
-          setAnalyticsData(snap.data() as ProposalAnalyticsData);
-        } else {
-          setAnalyticsData({
-            totalViews: 0,
-            uniqueViews: 0,
-            duplicateViews: 0,
-            deviceBreakdown: { Mobile: 0, Desktop: 0, Tablet: 0 },
-            locationBreakdown: {},
-            logs: []
-          });
-        }
-      } catch (fsErr) {
-        setAnalyticsData({
-          totalViews: 0,
-          uniqueViews: 0,
-          duplicateViews: 0,
-          deviceBreakdown: { Mobile: 0, Desktop: 0, Tablet: 0 },
-          locationBreakdown: {},
-          logs: []
-        });
+    // 2. Fetch permanent cloud logs from Firebase Firestore
+    try {
+      const snap = await Promise.race([
+        getDoc(doc(db, "proposal_analytics", "global_master_logs")),
+        new Promise<null>(res => setTimeout(() => res(null), 2500))
+      ]);
+      if (snap && snap.exists() && snap.data()?.logs) {
+        cloudMasterLogs = snap.data().logs;
       }
+    } catch (fsErr) {
+      console.warn("Firestore master logs notice:", fsErr);
     }
 
+    // Combine Server + Firebase Cloud logs to ensure ZERO data is ever lost!
+    const combinedLogsMap = new Map<string, AnalyticsLog>();
+
+    if (serverData && serverData.logs) {
+      serverData.logs.forEach(l => combinedLogsMap.set(l.id || (l.timestamp + l.ip), l));
+    }
+    cloudMasterLogs.forEach(l => combinedLogsMap.set(l.id || (l.timestamp + l.ip), l));
+
+    const masterLogs = Array.from(combinedLogsMap.values()).sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+
+    // Save back to Firestore global master logs for permanent cloud backup
+    if (masterLogs.length > 0) {
+      setDoc(doc(db, "proposal_analytics", "global_master_logs"), { logs: masterLogs.slice(0, 2000) }, { merge: true }).catch(() => {});
+    }
+
+    // Compute stats helper
+    const computeStats = (logsList: AnalyticsLog[]): ProposalAnalyticsData => {
+      const totalViews = logsList.length;
+      const uniqueVisitors = new Set(logsList.map(l => l.visitorId || l.ip));
+      const uniqueViews = uniqueVisitors.size;
+      const duplicateViews = Math.max(0, totalViews - uniqueViews);
+
+      const deviceBreakdown = { Mobile: 0, Desktop: 0, Tablet: 0 };
+      const locationBreakdown: Record<string, number> = {};
+      let totalDuration = 0;
+      let totalScroll = 0;
+      let highInterestCount = 0;
+
+      logsList.forEach(l => {
+        if (deviceBreakdown[l.device as 'Mobile'|'Desktop'|'Tablet'] !== undefined) {
+          deviceBreakdown[l.device as 'Mobile'|'Desktop'|'Tablet']++;
+        } else {
+          deviceBreakdown.Desktop++;
+        }
+
+        if (l.location) {
+          const areaStr = l.location.neighborhood 
+            ? `${l.location.neighborhood}, ${l.location.city}` 
+            : `${l.location.city || 'Mumbai'}, ${l.location.country || 'India'}`;
+          locationBreakdown[areaStr] = (locationBreakdown[areaStr] || 0) + 1;
+        }
+
+        const dur = l.timeSpentSeconds || 0;
+        const scr = l.maxScrollPercent || 0;
+        totalDuration += dur;
+        totalScroll += scr;
+        if (dur >= 120 || scr >= 75) highInterestCount++;
+      });
+
+      return {
+        totalViews,
+        uniqueViews,
+        duplicateViews,
+        avgTimeSpentSeconds: totalViews > 0 ? Math.round(totalDuration / totalViews) : 0,
+        avgScrollPercent: totalViews > 0 ? Math.round(totalScroll / totalViews) : 0,
+        highInterestCount,
+        deviceBreakdown,
+        locationBreakdown,
+        logs: logsList
+      };
+    };
+
+    setAnalyticsData(computeStats(masterLogs));
     setIsLoadingAnalytics(false);
   };
 
