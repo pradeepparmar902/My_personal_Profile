@@ -349,24 +349,7 @@ const server = http.createServer((req, res) => {
   }
 
   // ────────────────────────────────────────────────────────────────
-  // DIAGNOSTIC: /debug-proposals
-  // ────────────────────────────────────────────────────────────────
-  if (urlPath === '/debug-proposals') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    try {
-      const coversFiles    = fs.existsSync(COVERS_DIR)    ? fs.readdirSync(COVERS_DIR)    : [];
-      const wrappersFiles  = fs.existsSync(WRAPPERS_DIR)  ? fs.readdirSync(WRAPPERS_DIR)  : [];
-      const proposalsFiles = fs.existsSync(PROPOSALS_DIR) ? fs.readdirSync(PROPOSALS_DIR) : [];
-      const totalLogsCount = loadAnalyticsLogs().length;
-      res.end(JSON.stringify({ __dirname, COVERS_DIR, PROPOSALS_DIR, coversFiles, wrappersFiles, proposalsFiles, totalLogsCount }, null, 2));
-    } catch (e) {
-      res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
-
-  // ────────────────────────────────────────────────────────────────
-  // SERVE cover images + wrappers
+  // SERVE cover images + DYNAMIC WRAPPERS WITH 404 FALLBACK PROTECTION
   // ────────────────────────────────────────────────────────────────
   if (urlPath.startsWith('/covers/')) {
     const relativePath = urlPath.slice('/covers/'.length);
@@ -381,10 +364,58 @@ const server = http.createServer((req, res) => {
       const ct  = MIME_TYPES[ext] || 'application/octet-stream';
       res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'no-cache, no-store, must-revalidate' });
       fs.createReadStream(coverFile).pipe(res);
-    } else {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Cover not found: ' + relativePath);
+      return;
     }
+
+    // Dynamic Wrapper Generator Fallback if disk wrapper was reset by host deploy!
+    if (relativePath.startsWith('wrappers/')) {
+      const wrapperName = path.basename(relativePath);
+      const baseName    = wrapperName.replace(/-card\.html$/i, '');
+      const safeName    = baseName + '.html';
+
+      const proto = getProto(req);
+      const host  = getHost(req);
+      const actualUrl  = `${proto}://${host}/proposals/${safeName}`;
+      const wrapperUrl = `${proto}://${host}/covers/wrappers/${wrapperName}`;
+      const coverUrl   = `${proto}://${host}/covers/${baseName}-cover.jpg`;
+      const title      = baseName.replace(/_/g, ' ').toUpperCase();
+
+      const dynamicHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>${title}</title>
+<meta name="description" content="Interactive Executive Proposal"/>
+<meta property="og:type" content="article"/>
+<meta property="og:site_name" content="Pradeep Parmar"/>
+<meta property="og:title" content="${title}"/>
+<meta property="og:description" content="Interactive Executive Proposal featuring audio recordings, video clips, and modules."/>
+<meta property="og:image" content="${coverUrl}"/>
+<meta property="og:url" content="${wrapperUrl}"/>
+<meta name="twitter:card" content="summary_large_image"/>
+</head>
+<body style="background:#0a0a0a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;">
+<div>
+<h1 style="font-size:1.6rem;color:#fff;margin-bottom:8px;">${title}</h1>
+<p style="color:#aaa;max-width:480px;margin:0 auto 24px;">Interactive Executive Proposal</p>
+<a href="${actualUrl}" style="display:inline-block;background:#d4af37;color:#000;font-weight:700;padding:12px 28px;border-radius:10px;text-decoration:none;">Open Proposal →</a>
+</div>
+<script>
+  var ua = (navigator.userAgent||'').toLowerCase();
+  if (!/bot|crawler|spider|facebook|whatsapp|telegram|slack|linkedin|twitter/i.test(ua)) {
+    window.location.replace('${actualUrl}');
+  }
+</script>
+</body>
+</html>`;
+
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(dynamicHtml);
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Cover not found: ' + relativePath);
     return;
   }
 
