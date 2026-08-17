@@ -19,9 +19,10 @@ const MIME_TYPES = {
 };
 
 // ── Persistent storage outside dist/ so git deploys & restarts NEVER wipe uploaded files ─────
-const COVERS_DIR    = path.join(__dirname, 'covers_store');
-const WRAPPERS_DIR  = path.join(__dirname, 'covers_store', 'wrappers');
-const PROPOSALS_DIR = path.join(__dirname, 'proposals_store');
+const COVERS_DIR     = path.join(__dirname, 'covers_store');
+const WRAPPERS_DIR   = path.join(__dirname, 'covers_store', 'wrappers');
+const PROPOSALS_DIR  = path.join(__dirname, 'proposals_store');
+const LOGS_FILE_PATH = path.join(PROPOSALS_DIR, 'analytics_logs.json');
 
 if (!fs.existsSync(COVERS_DIR))    fs.mkdirSync(COVERS_DIR,    { recursive: true });
 if (!fs.existsSync(WRAPPERS_DIR))  fs.mkdirSync(WRAPPERS_DIR,  { recursive: true });
@@ -41,12 +42,144 @@ function getHost(req) {
   return req.headers['x-forwarded-host'] || req.headers.host || 'pradeepparmar.com';
 }
 
+// ── Analytics Logging Helpers ─────────────────────────────────────────────
+function loadAnalyticsLogs() {
+  try {
+    if (fs.existsSync(LOGS_FILE_PATH)) {
+      return JSON.parse(fs.readFileSync(LOGS_FILE_PATH, 'utf8'));
+    }
+  } catch (e) {
+    console.error('Error reading analytics_logs.json:', e.message);
+  }
+  return [];
+}
+
+function saveAnalyticsLogs(logs) {
+  try {
+    // Keep last 5000 view logs to manage file size
+    const trimmed = logs.slice(-5000);
+    fs.writeFileSync(LOGS_FILE_PATH, JSON.stringify(trimmed, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Error saving analytics_logs.json:', e.message);
+  }
+}
+
+function parseUserAgent(ua) {
+  if (!ua) return { device: 'Desktop', browser: 'Browser', os: 'Unknown' };
+  let device = 'Desktop';
+  if (/mobile/i.test(ua)) device = 'Mobile';
+  else if (/ipad|tablet/i.test(ua)) device = 'Tablet';
+
+  let os = 'Unknown OS';
+  if (/windows/i.test(ua)) os = 'Windows';
+  else if (/macintosh|mac os x/i.test(ua)) os = 'macOS';
+  else if (/android/i.test(ua)) os = 'Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
+  else if (/linux/i.test(ua)) os = 'Linux';
+
+  let browser = 'Browser';
+  if (/edg/i.test(ua)) browser = 'Edge';
+  else if (/chrome/i.test(ua)) browser = 'Chrome';
+  else if (/safari/i.test(ua)) browser = 'Safari';
+  else if (/firefox/i.test(ua)) browser = 'Firefox';
+
+  return { device, browser, os };
+}
+
+function recordView(filename, req, clientVisitorId = null) {
+  const ua = req.headers['user-agent'] || '';
+  // Skip bot / crawler requests (scrapers shouldn't count as human opens)
+  if (/bot|crawler|spider|facebook|whatsapp|telegram|slack|linkedin|twitter/i.test(ua)) {
+    return;
+  }
+
+  const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const ip = rawIp.split(',')[0].trim();
+  const visitorId = clientVisitorId || `${ip}_${ua.slice(0, 30)}`;
+  const { device, browser, os } = parseUserAgent(ua);
+
+  const newLog = {
+    id: 'view_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    filename: filename.replace(/[^a-zA-Z0-9._-]/g, '_'),
+    timestamp: new Date().toISOString(),
+    ip,
+    userAgent: ua,
+    device,
+    browser,
+    os,
+    visitorId
+  };
+
+  const logs = loadAnalyticsLogs();
+  logs.push(newLog);
+  saveAnalyticsLogs(logs);
+  return newLog;
+}
+
 const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
   if (urlPath === '/') urlPath = '/index.html';
 
   // ────────────────────────────────────────────────────────────────
-  // DIAGNOSTIC: /debug-proposals — check what files actually exist
+  // API: GET /api/proposal-analytics?filename=...
+  // ────────────────────────────────────────────────────────────────
+  if (urlPath === '/api/proposal-analytics') {
+    const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
+    const targetFilename = parsedUrl.searchParams.get('filename');
+
+    const allLogs = loadAnalyticsLogs();
+    const filteredLogs = targetFilename 
+      ? allLogs.filter(l => l.filename === targetFilename.replace(/[^a-zA-Z0-9._-]/g, '_'))
+      : allLogs;
+
+    const totalViews = filteredLogs.length;
+    const uniqueVisitors = new Set(filteredLogs.map(l => l.visitorId || l.ip));
+    const uniqueViews = uniqueVisitors.size;
+    const duplicateViews = Math.max(0, totalViews - uniqueViews);
+
+    const deviceBreakdown = { Mobile: 0, Desktop: 0, Tablet: 0 };
+    filteredLogs.forEach(l => {
+      if (deviceBreakdown[l.device] !== undefined) deviceBreakdown[l.device]++;
+      else deviceBreakdown.Desktop++;
+    });
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      filename: targetFilename,
+      totalViews,
+      uniqueViews,
+      duplicateViews,
+      deviceBreakdown,
+      logs: filteredLogs.slice(-100).reverse() // Return last 100 recent views
+    }));
+    return;
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // API: POST /api/track-proposal-view
+  // ────────────────────────────────────────────────────────────────
+  if (req.method === 'POST' && urlPath === '/api/track-proposal-view') {
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', () => {
+      try {
+        const { filename, visitorId } = JSON.parse(body);
+        if (filename) {
+          recordView(filename, req, visitorId);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // DIAGNOSTIC: /debug-proposals
   // ────────────────────────────────────────────────────────────────
   if (urlPath === '/debug-proposals') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -54,7 +187,8 @@ const server = http.createServer((req, res) => {
       const coversFiles    = fs.existsSync(COVERS_DIR)    ? fs.readdirSync(COVERS_DIR)    : [];
       const wrappersFiles  = fs.existsSync(WRAPPERS_DIR)  ? fs.readdirSync(WRAPPERS_DIR)  : [];
       const proposalsFiles = fs.existsSync(PROPOSALS_DIR) ? fs.readdirSync(PROPOSALS_DIR) : [];
-      res.end(JSON.stringify({ __dirname, COVERS_DIR, PROPOSALS_DIR, coversFiles, wrappersFiles, proposalsFiles }, null, 2));
+      const totalLogsCount = loadAnalyticsLogs().length;
+      res.end(JSON.stringify({ __dirname, COVERS_DIR, PROPOSALS_DIR, coversFiles, wrappersFiles, proposalsFiles, totalLogsCount }, null, 2));
     } catch (e) {
       res.end(JSON.stringify({ error: e.message }));
     }
@@ -86,7 +220,6 @@ const server = http.createServer((req, res) => {
 
   // ────────────────────────────────────────────────────────────────
   // API: POST /api/save-proposal-cover
-  // Saves cover PNG + generates lightweight OG wrapper HTML
   // ────────────────────────────────────────────────────────────────
   if (req.method === 'POST' && urlPath === '/api/save-proposal-cover') {
     let body = '';
@@ -99,7 +232,6 @@ const server = http.createServer((req, res) => {
         const coverFile   = baseName + '-cover.jpg';
         const wrapperFile = baseName + '-card.html';
 
-        // Save cover image to persistent covers_store/
         let coverUrl = '';
         if (imageBase64) {
           try {
@@ -111,7 +243,6 @@ const server = http.createServer((req, res) => {
           } catch (e) { console.error('[cover save error]', e.message); }
         }
 
-        // Build wrapper HTML with correct og:image
         const proto      = getProto(req);
         const host       = getHost(req);
         const actualUrl  = `${proto}://${host}/proposals/${safeName}`;
@@ -155,10 +286,8 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 </body>
 </html>`;
 
-        // Save wrapper to covers_store/wrappers/
         fs.writeFileSync(path.join(WRAPPERS_DIR, wrapperFile), wrapperHtml, 'utf8');
 
-        // ALSO write wrapper to dist/proposals/
         for (const dp of possibleDistPaths) {
           const pp = path.join(dp, 'proposals');
           try {
@@ -194,10 +323,8 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
         }
         const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
 
-        // Save to persistent proposals_store directory outside dist/
         fs.writeFileSync(path.join(PROPOSALS_DIR, safeName), htmlContent, 'utf8');
 
-        // Also save to dist/proposals for fast serving
         for (const dp of possibleDistPaths) {
           const pp = path.join(dp, 'proposals');
           try {
@@ -217,33 +344,15 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   }
 
   // ────────────────────────────────────────────────────────────────
-  // DIAGNOSTIC: /debug
-  // ────────────────────────────────────────────────────────────────
-  if (urlPath === '/debug') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    try {
-      const rootFiles = fs.readdirSync(__dirname);
-      const distPath  = path.join(__dirname, 'dist');
-      const distFiles = fs.existsSync(distPath) ? fs.readdirSync(distPath) : [];
-      res.end(JSON.stringify({ __dirname, rootFiles, distFiles }, null, 2));
-    } catch (e) {
-      res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
-
-  // ────────────────────────────────────────────────────────────────
   // STATIC FILE SERVING & PERSISTENT PROPOSAL RESOLUTION
   // ────────────────────────────────────────────────────────────────
   let filePath = null;
 
-  // 1. Check wrappers folder for *-card.html requests
   if (urlPath.startsWith('/proposals/') && urlPath.endsWith('-card.html')) {
     const wrapperCandidate = path.join(WRAPPERS_DIR, path.basename(urlPath));
     if (fs.existsSync(wrapperCandidate)) filePath = wrapperCandidate;
   }
 
-  // 2. Check persistent proposals_store for /proposals/*.html requests
   if (!filePath && urlPath.startsWith('/proposals/')) {
     const proposalCandidate = path.join(PROPOSALS_DIR, path.basename(urlPath));
     if (fs.existsSync(proposalCandidate) && fs.statSync(proposalCandidate).isFile()) {
@@ -251,7 +360,6 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
     }
   }
 
-  // 3. Fall back to checking dist/ directories
   if (!filePath) {
     for (const dp of possibleDistPaths) {
       const candidate = path.join(dp, urlPath);
@@ -262,7 +370,6 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
     }
   }
 
-  // Fallback to index.html for React Router (non-asset paths)
   if (!filePath) {
     if (path.extname(urlPath).length > 0) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -284,8 +391,13 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   const extname     = String(path.extname(filePath)).toLowerCase();
   const contentType = MIME_TYPES[extname] || 'application/octet-stream';
 
-  // Set No-Cache headers for proposal HTML files to ensure updates reflect immediately when refreshed!
-  const isProposalRequest = urlPath.startsWith('/proposals/');
+  const isProposalRequest = urlPath.startsWith('/proposals/') && !urlPath.endsWith('-card.html');
+  if (isProposalRequest) {
+    // Record view in analytics
+    const targetFilename = path.basename(filePath);
+    recordView(targetFilename, req);
+  }
+
   const cacheHeader = isProposalRequest 
     ? 'no-cache, no-store, must-revalidate, max-age=0' 
     : 'public, max-age=86400';
@@ -301,5 +413,5 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Persistent Proposals stored at: ${PROPOSALS_DIR}`);
+  console.log(`Analytics API ready. Logs stored at: ${LOGS_FILE_PATH}`);
 });

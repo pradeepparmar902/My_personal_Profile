@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, Globe, Image, X, ArrowRight, Mail, Download, RefreshCw, HelpCircle } from "lucide-react";
+import { 
+  Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, 
+  Globe, Image, X, ArrowRight, Mail, Download, RefreshCw, HelpCircle, 
+  BarChart3, Users, Repeat, Smartphone, Laptop, Clock, ShieldAlert
+} from "lucide-react";
 
 export interface ProposalItem {
   id: string;
@@ -9,6 +13,26 @@ export interface ProposalItem {
   imageUrl: string;
   date: string;
   wrapperUrl?: string;
+}
+
+export interface AnalyticsLog {
+  id: string;
+  filename: string;
+  timestamp: string;
+  ip: string;
+  userAgent: string;
+  device: string;
+  browser: string;
+  os: string;
+  visitorId: string;
+}
+
+export interface ProposalAnalyticsData {
+  totalViews: number;
+  uniqueViews: number;
+  duplicateViews: number;
+  deviceBreakdown: { Mobile: number; Desktop: number; Tablet: number };
+  logs: AnalyticsLog[];
 }
 
 // ── IndexedDB helpers for large HTML files ──────────────────────────────────
@@ -84,7 +108,7 @@ interface PendingProposal {
   filename: string;
   title: string;
   description: string;
-  targetProposalId?: string; // set if updating an existing proposal!
+  targetProposalId?: string;
 }
 
 export default function Proposals() {
@@ -103,8 +127,13 @@ export default function Proposals() {
   const [coverFile, setCoverFile]       = useState<File | null>(null);
   const [editTitle, setEditTitle]       = useState("");
   const [editDesc, setEditDesc]         = useState("");
-  const [activeModalItem, setActiveModalItem] = useState<ProposalItem | null>(null);
   
+  // Modals state
+  const [activeModalItem, setActiveModalItem] = useState<ProposalItem | null>(null);
+  const [analyticsItem, setAnalyticsItem]     = useState<ProposalItem | null>(null);
+  const [analyticsData, setAnalyticsData]     = useState<ProposalAnalyticsData | null>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+
   const coverInputRef  = useRef<HTMLInputElement>(null);
   const updateInputRef = useRef<HTMLInputElement>(null);
   const [updatingProposal, setUpdatingProposal] = useState<ProposalItem | null>(null);
@@ -118,7 +147,24 @@ export default function Proposals() {
     } catch (e) { console.warn(e); }
   }, [proposals]);
 
-  // ── Step 1: Upload New HTML File ─────────────────────────────────────────
+  // Fetch Analytics Data
+  const openAnalyticsModal = async (item: ProposalItem) => {
+    setAnalyticsItem(item);
+    setIsLoadingAnalytics(true);
+    try {
+      const resp = await fetch(`/api/proposal-analytics?filename=${encodeURIComponent(item.filename)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setAnalyticsData(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch analytics:", err);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
+  // Upload New File
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -149,7 +195,7 @@ export default function Proposals() {
     e.target.value = "";
   };
 
-  // ── Step 1 (Update Mode): Trigger update for existing proposal ──────────
+  // Update Existing Proposal File
   const triggerUpdateProposal = (item: ProposalItem) => {
     setUpdatingProposal(item);
     if (updateInputRef.current) {
@@ -175,7 +221,6 @@ export default function Proposals() {
       const desc = doc.querySelector('meta[property="og:description"]')?.getAttribute("content")
         || updatingProposal.description;
 
-      // KEEP THE EXACT SAME FILENAME so URL NEVER CHANGES!
       setPending({
         htmlContent: content,
         filename: updatingProposal.filename,
@@ -202,7 +247,6 @@ export default function Proposals() {
     setCoverPreview(preview);
   };
 
-  // ── Step 2: Confirm & Publish / Update ────────────────────────────────────
   const handleConfirmPublish = async () => {
     if (!pending) return;
     setIsSaving(true);
@@ -229,10 +273,8 @@ export default function Proposals() {
 
       const propId = pending.targetProposalId || ("prop-" + Date.now());
 
-      // 1. Update IndexedDB for local viewing
       await saveFileToIndexedDB(propId, pending.htmlContent);
 
-      // 2. Overwrite server disk HTML file (URL stays identical!)
       try {
         await fetch("/api/upload-proposal", {
           method: "POST",
@@ -252,10 +294,8 @@ export default function Proposals() {
       };
 
       if (pending.targetProposalId) {
-        // Replace existing item in state
         setProposals(prev => prev.map(p => p.id === pending.targetProposalId ? updatedProposal : p));
       } else {
-        // Add new proposal to top
         setProposals(prev => [updatedProposal, ...prev]);
       }
 
@@ -295,7 +335,6 @@ export default function Proposals() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Download Clickable HTML Image Banner file
   const handleDownloadClickableHtml = (item: ProposalItem) => {
     const targetUrl = getProposalUrl(item);
     const imgUrl = item.imageUrl || `${window.location.origin}/logo-white.png`;
@@ -367,10 +406,10 @@ export default function Proposals() {
           <Sparkles size={14} /> Executive Proposals Portal
         </div>
         <h1 className="text-3xl md:text-5xl font-serif font-bold text-white mb-4">
-          Interactive <span className="text-[#d4af37]">Proposals & Presentations</span>
+          Interactive <span className="text-[#d4af37]">Proposals & Analytics</span>
         </h1>
         <p className="text-gray-400 text-sm md:text-base">
-          Upload HTML proposals, update existing proposals without changing shared URLs, and generate WhatsApp preview cards!
+          Host proposals, track who opens them, monitor unique vs repeat views, and update files seamlessly without changing share links!
         </p>
       </div>
 
@@ -385,7 +424,7 @@ export default function Proposals() {
               </div>
               <h3 className="text-lg font-serif font-semibold text-white">Click or Drag & Drop HTML Proposal File</h3>
               <p className="text-xs text-gray-400 max-w-md">
-                Select your exported LearningOS HTML file. To update an existing proposal without changing its URL, use the "Update HTML" button on its card below.
+                Select your exported LearningOS HTML file. Auto-tracks reader opens, unique visitors, and device logs!
               </p>
             </div>
           </label>
@@ -400,7 +439,7 @@ export default function Proposals() {
               <h3 className="text-lg font-serif font-bold text-white flex items-center gap-2">
                 {pending.targetProposalId ? (
                   <>
-                    <RefreshCw size={18} className="text-amber-400" /> Update Existing Proposal Content
+                    <RefreshCw size={18} className="text-amber-400" /> Update Proposal & Retain Shared URL
                   </>
                 ) : (
                   <>
@@ -416,7 +455,7 @@ export default function Proposals() {
             {pending.targetProposalId && (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4 text-xs text-amber-300 flex items-center gap-2">
                 <RefreshCw size={14} className="flex-shrink-0" />
-                <span>Updating <strong>{pending.filename}</strong> — The shared URL will remain exactly the same!</span>
+                <span>Updating <strong>{pending.filename}</strong> — The shared URL remains 100% identical!</span>
               </div>
             )}
 
@@ -447,7 +486,7 @@ export default function Proposals() {
                 Cover Image for WhatsApp Preview <span className="text-[#d4af37]">*</span>
               </label>
               <p className="text-xs text-gray-500 mb-3">
-                Upload your banner image (e.g. Mumbai Meghwal Panchayat banner or custom cover). This image will appear as the WhatsApp preview card.
+                Upload your banner image (e.g. Mumbai Meghwal Panchayat banner or custom cover). This image appears as the WhatsApp preview card.
               </p>
               <div className="flex items-center gap-4">
                 {coverPreview ? (
@@ -566,22 +605,30 @@ export default function Proposals() {
                   </button>
                 </div>
 
-                {/* Additional Buttons: Update HTML & Clickable Embed Options */}
+                {/* Second row of action buttons */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => triggerUpdateProposal(item)}
-                    className="flex-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 font-semibold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    title="Replace/Update HTML content for this proposal without changing the shared URL"
+                    onClick={() => openAnalyticsModal(item)}
+                    className="flex-1 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-semibold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="View open counts, unique readers, and view logs"
                   >
-                    <RefreshCw size={14} /> Update HTML File (Keep Same URL)
+                    <BarChart3 size={14} /> 📊 View Analytics & Logs
+                  </button>
+
+                  <button
+                    onClick={() => triggerUpdateProposal(item)}
+                    className="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 font-semibold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Replace HTML file without changing URL"
+                  >
+                    <RefreshCw size={14} /> Update HTML
                   </button>
 
                   <button
                     onClick={() => setActiveModalItem(item)}
                     className="bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white font-semibold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    title="Clickable image embed code & options"
+                    title="Embed Clickable Image options"
                   >
-                    <HelpCircle size={14} /> Embed Options
+                    <HelpCircle size={14} /> Embed Code
                   </button>
                 </div>
               </div>
@@ -589,6 +636,123 @@ export default function Proposals() {
           ))}
         </div>
       </div>
+
+      {/* ── Modal: Proposal Analytics & Logs ── */}
+      {analyticsItem && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#121212] border border-[#d4af37]/40 rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 flex-shrink-0">
+              <div>
+                <h3 className="text-lg font-serif font-bold text-white flex items-center gap-2">
+                  <BarChart3 className="text-[#d4af37]" size={20} /> Proposal Reader Analytics
+                </h3>
+                <p className="text-xs text-gray-400 font-mono mt-0.5">{analyticsItem.filename}</p>
+              </div>
+              <button onClick={() => { setAnalyticsItem(null); setAnalyticsData(null); }} className="text-gray-400 hover:text-white cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            {isLoadingAnalytics ? (
+              <div className="py-12 text-center text-gray-400 flex flex-col items-center gap-2">
+                <RefreshCw size={24} className="animate-spin text-[#d4af37]" />
+                <p className="text-sm">Fetching view logs and analytics...</p>
+              </div>
+            ) : analyticsData ? (
+              <div className="space-y-6 overflow-y-auto pr-1">
+                {/* 3 Metric Cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400 uppercase tracking-wider mb-1">
+                      <Eye size={14} className="text-blue-400" /> Total Opens
+                    </div>
+                    <div className="text-2xl md:text-3xl font-bold text-white">{analyticsData.totalViews}</div>
+                    <span className="text-[10px] text-gray-500">All page views</span>
+                  </div>
+
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400 uppercase tracking-wider mb-1">
+                      <Users size={14} className="text-emerald-400" /> Unique Readers
+                    </div>
+                    <div className="text-2xl md:text-3xl font-bold text-emerald-400">{analyticsData.uniqueViews}</div>
+                    <span className="text-[10px] text-gray-500">Distinct devices/IPs</span>
+                  </div>
+
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400 uppercase tracking-wider mb-1">
+                      <Repeat size={14} className="text-amber-400" /> Duplicate Opens
+                    </div>
+                    <div className="text-2xl md:text-3xl font-bold text-amber-400">{analyticsData.duplicateViews}</div>
+                    <span className="text-[10px] text-gray-500">Re-reads by audience</span>
+                  </div>
+                </div>
+
+                {/* Device Breakdown */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-around text-xs">
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <Smartphone size={16} className="text-blue-400" />
+                    <span>Mobile: <strong>{analyticsData.deviceBreakdown.Mobile}</strong></span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <Laptop size={16} className="text-purple-400" />
+                    <span>Desktop: <strong>{analyticsData.deviceBreakdown.Desktop}</strong></span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-300">
+                    <Smartphone size={16} className="text-amber-400" />
+                    <span>Tablet: <strong>{analyticsData.deviceBreakdown.Tablet}</strong></span>
+                  </div>
+                </div>
+
+                {/* Recent Logs Table */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-gray-400 font-semibold uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5"><Clock size={14} /> Recent View Activity</span>
+                    <span>{analyticsData.logs.length} Log Entries</span>
+                  </div>
+
+                  {analyticsData.logs.length === 0 ? (
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center text-xs text-gray-500">
+                      No views logged yet. Share your link to start tracking audience engagement!
+                    </div>
+                  ) : (
+                    <div className="border border-white/10 rounded-2xl overflow-hidden bg-black/40 text-xs">
+                      <div className="max-h-60 overflow-y-auto divide-y divide-white/5">
+                        {analyticsData.logs.map((log, idx) => (
+                          <div key={log.id || idx} className="p-3 flex items-center justify-between hover:bg-white/5 transition-colors">
+                            <div className="space-y-0.5">
+                              <div className="font-mono text-white text-xs flex items-center gap-2">
+                                <span>{log.device === "Mobile" ? "📱 Mobile" : log.device === "Tablet" ? "📟 Tablet" : "💻 Desktop"}</span>
+                                <span className="text-gray-400">• {log.browser} ({log.os})</span>
+                              </div>
+                              <div className="text-[11px] text-gray-500 font-mono">
+                                IP: {log.ip}
+                              </div>
+                            </div>
+                            <div className="text-right space-y-0.5">
+                              <div className="text-[11px] text-gray-300 font-mono">
+                                {new Date(log.timestamp).toLocaleString()}
+                              </div>
+                              <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                Real Open
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="pt-2 border-t border-white/10 text-right flex-shrink-0">
+              <button onClick={() => { setAnalyticsItem(null); setAnalyticsData(null); }} className="px-5 py-2 rounded-xl bg-white/10 text-white text-xs hover:bg-white/20 transition-colors cursor-pointer">
+                Close Analytics
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: Embed & Download Options ── */}
       {activeModalItem && (
