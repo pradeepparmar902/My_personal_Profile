@@ -1,6 +1,7 @@
-const http = require('http');
-const fs   = require('fs');
-const path = require('path');
+const http  = require('http');
+const https = require('https');
+const fs    = require('fs');
+const path  = require('path');
 
 const PORT = process.env.PORT || 3000;
 
@@ -42,7 +43,9 @@ function getHost(req) {
   return req.headers['x-forwarded-host'] || req.headers.host || 'pradeepparmar.com';
 }
 
-// ── Analytics Logging Helpers ─────────────────────────────────────────────
+// ── Analytics Logging & Geolocation Helpers ─────────────────────────────────
+const ipGeoCache = new Map();
+
 function loadAnalyticsLogs() {
   try {
     if (fs.existsSync(LOGS_FILE_PATH)) {
@@ -56,7 +59,6 @@ function loadAnalyticsLogs() {
 
 function saveAnalyticsLogs(logs) {
   try {
-    // Keep last 5000 view logs to manage file size
     const trimmed = logs.slice(-5000);
     fs.writeFileSync(LOGS_FILE_PATH, JSON.stringify(trimmed, null, 2), 'utf8');
   } catch (e) {
@@ -86,9 +88,56 @@ function parseUserAgent(ua) {
   return { device, browser, os };
 }
 
+// Fast GeoIP Lookup
+function fetchGeoLocation(ip, req, callback) {
+  const cfCity    = req.headers['cf-ipcity'];
+  const cfCountry = req.headers['cf-ipcountry'];
+  if (cfCity || cfCountry) {
+    callback({ city: cfCity || 'Unknown City', region: '', country: cfCountry || 'Unknown Country', countryCode: cfCountry || '' });
+    return;
+  }
+
+  if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+    callback({ city: 'Localhost', region: '', country: 'Local Network', countryCode: 'LOCAL' });
+    return;
+  }
+
+  if (ipGeoCache.has(ip)) {
+    callback(ipGeoCache.get(ip));
+    return;
+  }
+
+  // Asynchronously query ip-api.com
+  const reqUrl = `http://ip-api.com/json/${ip}?fields=status,country,countryCode,regionName,city`;
+  http.get(reqUrl, (res) => {
+    let data = '';
+    res.on('data', chunk => { data += chunk; });
+    res.on('end', () => {
+      try {
+        const json = JSON.parse(data);
+        if (json.status === 'success') {
+          const loc = {
+            city: json.city || 'Unknown City',
+            region: json.regionName || '',
+            country: json.country || 'Unknown Country',
+            countryCode: json.countryCode || ''
+          };
+          ipGeoCache.set(ip, loc);
+          callback(loc);
+          return;
+        }
+      } catch (e) {}
+      const fallback = { city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN' };
+      ipGeoCache.set(ip, fallback);
+      callback(fallback);
+    });
+  }).on('error', () => {
+    callback({ city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN' });
+  });
+}
+
 function recordView(filename, req, clientVisitorId = null) {
   const ua = req.headers['user-agent'] || '';
-  // Skip bot / crawler requests (scrapers shouldn't count as human opens)
   if (/bot|crawler|spider|facebook|whatsapp|telegram|slack|linkedin|twitter/i.test(ua)) {
     return;
   }
@@ -107,12 +156,20 @@ function recordView(filename, req, clientVisitorId = null) {
     device,
     browser,
     os,
-    visitorId
+    visitorId,
+    location: { city: 'Detecting...', region: '', country: 'Detecting...', countryCode: '' }
   };
 
   const logs = loadAnalyticsLogs();
   logs.push(newLog);
   saveAnalyticsLogs(logs);
+
+  // Asynchronously resolve real location and update log file
+  fetchGeoLocation(ip, req, (loc) => {
+    newLog.location = loc;
+    saveAnalyticsLogs(logs);
+  });
+
   return newLog;
 }
 
@@ -138,9 +195,16 @@ const server = http.createServer((req, res) => {
     const duplicateViews = Math.max(0, totalViews - uniqueViews);
 
     const deviceBreakdown = { Mobile: 0, Desktop: 0, Tablet: 0 };
+    const locationBreakdown = {};
+
     filteredLogs.forEach(l => {
       if (deviceBreakdown[l.device] !== undefined) deviceBreakdown[l.device]++;
       else deviceBreakdown.Desktop++;
+
+      if (l.location && l.location.city && l.location.city !== 'Detecting...') {
+        const locName = `${l.location.city}, ${l.location.country}`;
+        locationBreakdown[locName] = (locationBreakdown[locName] || 0) + 1;
+      }
     });
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -151,7 +215,8 @@ const server = http.createServer((req, res) => {
       uniqueViews,
       duplicateViews,
       deviceBreakdown,
-      logs: filteredLogs.slice(-100).reverse() // Return last 100 recent views
+      locationBreakdown,
+      logs: filteredLogs.slice(-100).reverse()
     }));
     return;
   }
@@ -308,7 +373,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   }
 
   // ────────────────────────────────────────────────────────────────
-  // API: POST /api/upload-proposal — save full HTML to persistent proposals_store/
+  // API: POST /api/upload-proposal
   // ────────────────────────────────────────────────────────────────
   if (req.method === 'POST' && urlPath === '/api/upload-proposal') {
     let body = '';
@@ -393,7 +458,6 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 
   const isProposalRequest = urlPath.startsWith('/proposals/') && !urlPath.endsWith('-card.html');
   if (isProposalRequest) {
-    // Record view in analytics
     const targetFilename = path.basename(filePath);
     recordView(targetFilename, req);
   }
@@ -413,5 +477,5 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Analytics API ready. Logs stored at: ${LOGS_FILE_PATH}`);
+  console.log(`Analytics API with Geolocation ready.`);
 });

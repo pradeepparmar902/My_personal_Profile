@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { 
   Upload, Share2, Eye, Copy, Trash2, Check, FileText, Sparkles, 
   Globe, Image, X, ArrowRight, Mail, Download, RefreshCw, HelpCircle, 
-  BarChart3, Users, Repeat, Smartphone, Laptop, Clock, ShieldAlert
+  BarChart3, Users, Repeat, Smartphone, Laptop, Clock, MapPin
 } from "lucide-react";
 
 export interface ProposalItem {
@@ -15,6 +15,13 @@ export interface ProposalItem {
   wrapperUrl?: string;
 }
 
+export interface LocationInfo {
+  city: string;
+  region: string;
+  country: string;
+  countryCode?: string;
+}
+
 export interface AnalyticsLog {
   id: string;
   filename: string;
@@ -25,6 +32,7 @@ export interface AnalyticsLog {
   browser: string;
   os: string;
   visitorId: string;
+  location?: LocationInfo;
 }
 
 export interface ProposalAnalyticsData {
@@ -32,6 +40,7 @@ export interface ProposalAnalyticsData {
   uniqueViews: number;
   duplicateViews: number;
   deviceBreakdown: { Mobile: number; Desktop: number; Tablet: number };
+  locationBreakdown?: Record<string, number>;
   logs: AnalyticsLog[];
 }
 
@@ -397,7 +406,6 @@ export default function Proposals() {
 
   return (
     <div className="pt-28 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
-      {/* Hidden file input for updating existing proposals */}
       <input ref={updateInputRef} type="file" accept=".html,.htm" onChange={handleUpdateFileSelected} className="hidden" />
 
       {/* Header */}
@@ -409,7 +417,7 @@ export default function Proposals() {
           Interactive <span className="text-[#d4af37]">Proposals & Analytics</span>
         </h1>
         <p className="text-gray-400 text-sm md:text-base">
-          Host proposals, track who opens them, monitor unique vs repeat views, and update files seamlessly without changing share links!
+          Host proposals, track reader opens, view reader location & cities, and monitor unique vs repeat views!
         </p>
       </div>
 
@@ -424,7 +432,7 @@ export default function Proposals() {
               </div>
               <h3 className="text-lg font-serif font-semibold text-white">Click or Drag & Drop HTML Proposal File</h3>
               <p className="text-xs text-gray-400 max-w-md">
-                Select your exported LearningOS HTML file. Auto-tracks reader opens, unique visitors, and device logs!
+                Select your exported LearningOS HTML file. Auto-tracks reader opens, city/country location, and device logs!
               </p>
             </div>
           </label>
@@ -610,9 +618,9 @@ export default function Proposals() {
                   <button
                     onClick={() => openAnalyticsModal(item)}
                     className="flex-1 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-semibold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    title="View open counts, unique readers, and view logs"
+                    title="View open counts, unique readers, location, and logs"
                   >
-                    <BarChart3 size={14} /> 📊 View Analytics & Logs
+                    <BarChart3 size={14} /> 📊 View Analytics & Location
                   </button>
 
                   <button
@@ -637,14 +645,14 @@ export default function Proposals() {
         </div>
       </div>
 
-      {/* ── Modal: Proposal Analytics & Logs ── */}
+      {/* ── Modal: Proposal Analytics & Location ── */}
       {analyticsItem && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#121212] border border-[#d4af37]/40 rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl space-y-6 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-white/10 pb-4 flex-shrink-0">
               <div>
                 <h3 className="text-lg font-serif font-bold text-white flex items-center gap-2">
-                  <BarChart3 className="text-[#d4af37]" size={20} /> Proposal Reader Analytics
+                  <BarChart3 className="text-[#d4af37]" size={20} /> Proposal Analytics & Reader Locations
                 </h3>
                 <p className="text-xs text-gray-400 font-mono mt-0.5">{analyticsItem.filename}</p>
               </div>
@@ -656,7 +664,7 @@ export default function Proposals() {
             {isLoadingAnalytics ? (
               <div className="py-12 text-center text-gray-400 flex flex-col items-center gap-2">
                 <RefreshCw size={24} className="animate-spin text-[#d4af37]" />
-                <p className="text-sm">Fetching view logs and analytics...</p>
+                <p className="text-sm">Fetching view logs, geolocation & analytics...</p>
               </div>
             ) : analyticsData ? (
               <div className="space-y-6 overflow-y-auto pr-1">
@@ -687,6 +695,24 @@ export default function Proposals() {
                   </div>
                 </div>
 
+                {/* Location Breakdown Summary */}
+                {analyticsData.locationBreakdown && Object.keys(analyticsData.locationBreakdown).length > 0 && (
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
+                    <div className="text-xs text-gray-300 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                      <MapPin size={14} className="text-rose-400" /> Reader Locations & Cities
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {Object.entries(analyticsData.locationBreakdown).map(([loc, count]) => (
+                        <div key={loc} className="bg-rose-500/10 border border-rose-500/30 rounded-xl px-3 py-1.5 text-xs text-rose-200 flex items-center gap-1.5">
+                          <MapPin size={12} />
+                          <span>{loc}</span>
+                          <span className="bg-rose-500/30 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white">{count} opens</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Device Breakdown */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-around text-xs">
                   <div className="flex items-center gap-2 text-gray-300">
@@ -706,13 +732,13 @@ export default function Proposals() {
                 {/* Recent Logs Table */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs text-gray-400 font-semibold uppercase tracking-wider">
-                    <span className="flex items-center gap-1.5"><Clock size={14} /> Recent View Activity</span>
+                    <span className="flex items-center gap-1.5"><Clock size={14} /> View Activity Logs</span>
                     <span>{analyticsData.logs.length} Log Entries</span>
                   </div>
 
                   {analyticsData.logs.length === 0 ? (
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center text-xs text-gray-500">
-                      No views logged yet. Share your link to start tracking audience engagement!
+                      No views logged yet. Share your link to start tracking audience engagement & location!
                     </div>
                   ) : (
                     <div className="border border-white/10 rounded-2xl overflow-hidden bg-black/40 text-xs">
@@ -724,8 +750,10 @@ export default function Proposals() {
                                 <span>{log.device === "Mobile" ? "📱 Mobile" : log.device === "Tablet" ? "📟 Tablet" : "💻 Desktop"}</span>
                                 <span className="text-gray-400">• {log.browser} ({log.os})</span>
                               </div>
-                              <div className="text-[11px] text-gray-500 font-mono">
-                                IP: {log.ip}
+                              <div className="text-[11px] text-rose-300 font-mono flex items-center gap-1">
+                                <MapPin size={11} className="text-rose-400" />
+                                {log.location ? `${log.location.city}, ${log.location.country}` : 'Location Detected'}
+                                <span className="text-gray-500 ml-2">• IP: {log.ip}</span>
                               </div>
                             </div>
                             <div className="text-right space-y-0.5">
