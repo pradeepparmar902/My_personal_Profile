@@ -34,12 +34,17 @@ export interface AnalyticsLog {
   os: string;
   visitorId: string;
   location?: LocationInfo;
+  timeSpentSeconds?: number;
+  maxScrollPercent?: number;
 }
 
 export interface ProposalAnalyticsData {
   totalViews: number;
   uniqueViews: number;
   duplicateViews: number;
+  avgTimeSpentSeconds?: number;
+  avgScrollPercent?: number;
+  highInterestCount?: number;
   deviceBreakdown: { Mobile: number; Desktop: number; Tablet: number };
   locationBreakdown?: Record<string, number>;
   logs: AnalyticsLog[];
@@ -111,6 +116,14 @@ function compressImageFile(file: File): Promise<string> {
     reader.onerror = () => resolve("");
     reader.readAsDataURL(file);
   });
+}
+
+function formatDuration(sec?: number) {
+  if (!sec || sec <= 0) return "< 10s";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m === 0) return `${s}s`;
+  return `${m}m ${s}s`;
 }
 
 interface PendingProposal {
@@ -256,7 +269,7 @@ export default function Proposals() {
       return;
     }
 
-    const headers = ["Timestamp", "Filename", "IP Address", "Device", "Browser", "OS", "Neighborhood", "City", "Country"];
+    const headers = ["Timestamp", "Filename", "IP Address", "Device", "Browser", "OS", "Time Spent", "Scroll Depth %", "Neighborhood", "City", "Country"];
     const rows = analyticsData.logs.map(log => [
       `"${new Date(log.timestamp).toLocaleString()}"`,
       `"${log.filename}"`,
@@ -264,6 +277,8 @@ export default function Proposals() {
       `"${log.device}"`,
       `"${log.browser}"`,
       `"${log.os}"`,
+      `"${formatDuration(log.timeSpentSeconds)}"`,
+      `"${log.maxScrollPercent || 0}%"`,
       `"${log.location?.neighborhood || ""}"`,
       `"${log.location?.city || "Mumbai"}"`,
       `"${log.location?.country || "India"}"`
@@ -794,30 +809,46 @@ export default function Proposals() {
               </div>
             ) : analyticsData ? (
               <div className="space-y-6 overflow-y-auto pr-1">
-                {/* 3 Metric Cards */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400 uppercase tracking-wider mb-1">
-                      <Eye size={14} className="text-blue-400" /> Total Opens
+                {/* 5 Metric Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
+                      <Eye size={12} className="text-blue-400" /> Total Opens
                     </div>
-                    <div className="text-2xl md:text-3xl font-bold text-white">{analyticsData.totalViews}</div>
+                    <div className="text-xl md:text-2xl font-bold text-white">{analyticsData.totalViews}</div>
                     <span className="text-[10px] text-gray-500">All page views</span>
                   </div>
 
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400 uppercase tracking-wider mb-1">
-                      <Users size={14} className="text-emerald-400" /> Unique Readers
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
+                      <Users size={12} className="text-emerald-400" /> Unique Readers
                     </div>
-                    <div className="text-2xl md:text-3xl font-bold text-emerald-400">{analyticsData.uniqueViews}</div>
+                    <div className="text-xl md:text-2xl font-bold text-emerald-400">{analyticsData.uniqueViews}</div>
                     <span className="text-[10px] text-gray-500">Distinct devices/IPs</span>
                   </div>
 
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400 uppercase tracking-wider mb-1">
-                      <Repeat size={14} className="text-amber-400" /> Duplicate Opens
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
+                      <Repeat size={12} className="text-amber-400" /> Re-Reads
                     </div>
-                    <div className="text-2xl md:text-3xl font-bold text-amber-400">{analyticsData.duplicateViews}</div>
-                    <span className="text-[10px] text-gray-500">Re-reads by audience</span>
+                    <div className="text-xl md:text-2xl font-bold text-amber-400">{analyticsData.duplicateViews}</div>
+                    <span className="text-[10px] text-gray-500">Repeat opens</span>
+                  </div>
+
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
+                      <Clock size={12} className="text-purple-400" /> Avg Read Time
+                    </div>
+                    <div className="text-xl md:text-2xl font-bold text-purple-300">{formatDuration(analyticsData.avgTimeSpentSeconds)}</div>
+                    <span className="text-[10px] text-gray-500">Active reading time</span>
+                  </div>
+
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center col-span-2 md:col-span-1">
+                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
+                      <FileText size={12} className="text-rose-400" /> Scroll Depth
+                    </div>
+                    <div className="text-xl md:text-2xl font-bold text-rose-300">{analyticsData.avgScrollPercent || 0}%</div>
+                    <span className="text-[10px] text-gray-500">Content completed</span>
                   </div>
                 </div>
 
@@ -888,9 +919,23 @@ export default function Proposals() {
                               <div className="text-[11px] text-gray-300 font-mono">
                                 {new Date(log.timestamp).toLocaleString()}
                               </div>
-                              <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                                Real Open
-                              </span>
+                              <div className="flex items-center justify-end gap-1.5 pt-0.5 flex-wrap">
+                                {log.timeSpentSeconds && log.timeSpentSeconds > 0 ? (
+                                  <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/30">
+                                    ⏱️ {formatDuration(log.timeSpentSeconds)}
+                                  </span>
+                                ) : null}
+                                {log.maxScrollPercent && log.maxScrollPercent > 0 ? (
+                                  <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30">
+                                    📜 {log.maxScrollPercent}% Read
+                                  </span>
+                                ) : null}
+                                {(log.timeSpentSeconds && log.timeSpentSeconds >= 120) || (log.maxScrollPercent && log.maxScrollPercent >= 75) ? (
+                                  <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold">
+                                    🔥 High Interest
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
                         ))}

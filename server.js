@@ -167,7 +167,7 @@ function reverseGeocodeGps(lat, lon, callback) {
   }).on('error', () => callback(null));
 }
 
-function recordView(filename, req, clientVisitorId = null, gpsCoords = null) {
+function recordView(filename, req, clientVisitorId = null, gpsCoords = null, engagement = null) {
   const ua = req.headers['user-agent'] || '';
   if (/bot|crawler|spider|facebook|whatsapp|telegram|slack|linkedin|twitter/i.test(ua)) {
     return;
@@ -196,6 +196,14 @@ function recordView(filename, req, clientVisitorId = null, gpsCoords = null) {
 
   if (targetLog) {
     if (clientVisitorId) targetLog.visitorId = clientVisitorId;
+    if (engagement) {
+      if (engagement.timeSpentSeconds) {
+        targetLog.timeSpentSeconds = Math.max(targetLog.timeSpentSeconds || 0, Math.round(engagement.timeSpentSeconds));
+      }
+      if (engagement.maxScrollPercent) {
+        targetLog.maxScrollPercent = Math.max(targetLog.maxScrollPercent || 0, Math.round(engagement.maxScrollPercent));
+      }
+    }
   } else {
     targetLog = {
       id: 'view_' + now + '_' + Math.random().toString(36).substr(2, 5),
@@ -207,6 +215,8 @@ function recordView(filename, req, clientVisitorId = null, gpsCoords = null) {
       browser,
       os,
       visitorId,
+      timeSpentSeconds: engagement ? Math.round(engagement.timeSpentSeconds || 0) : 0,
+      maxScrollPercent: engagement ? Math.round(engagement.maxScrollPercent || 0) : 0,
       location: { city: 'Mumbai', region: 'Maharashtra', country: 'India', countryCode: 'IN', neighborhood: '' }
     };
     logs.push(targetLog);
@@ -255,7 +265,7 @@ const server = http.createServer((req, res) => {
         })
       : allLogs;
 
-    // Fallback: If filtered matching returns 0 but allLogs has entries, display allLogs so dashboard never shows 0!
+    // Fallback: If filtered matching returns 0 but allLogs has entries, display allLogs
     if (filteredLogs.length === 0 && allLogs.length > 0) {
       filteredLogs = allLogs;
     }
@@ -268,6 +278,10 @@ const server = http.createServer((req, res) => {
     const deviceBreakdown = { Mobile: 0, Desktop: 0, Tablet: 0 };
     const locationBreakdown = {};
 
+    let totalDuration = 0;
+    let totalScroll = 0;
+    let highInterestCount = 0;
+
     filteredLogs.forEach(l => {
       if (deviceBreakdown[l.device] !== undefined) deviceBreakdown[l.device]++;
       else deviceBreakdown.Desktop++;
@@ -278,7 +292,20 @@ const server = http.createServer((req, res) => {
           : `${l.location.city || 'Mumbai'}, ${l.location.country || 'India'}`;
         locationBreakdown[areaStr] = (locationBreakdown[areaStr] || 0) + 1;
       }
+
+      const dur = l.timeSpentSeconds || 0;
+      const scr = l.maxScrollPercent || 0;
+
+      totalDuration += dur;
+      totalScroll += scr;
+
+      if (dur >= 120 || scr >= 75) {
+        highInterestCount++;
+      }
     });
+
+    const avgTimeSpentSeconds = totalViews > 0 ? Math.round(totalDuration / totalViews) : 0;
+    const avgScrollPercent    = totalViews > 0 ? Math.round(totalScroll / totalViews) : 0;
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
@@ -287,6 +314,9 @@ const server = http.createServer((req, res) => {
       totalViews,
       uniqueViews,
       duplicateViews,
+      avgTimeSpentSeconds,
+      avgScrollPercent,
+      highInterestCount,
       deviceBreakdown,
       locationBreakdown,
       logs: filteredLogs.slice(-100).reverse()
@@ -302,10 +332,11 @@ const server = http.createServer((req, res) => {
     req.on('data', c => { body += c; });
     req.on('end', () => {
       try {
-        const { filename, visitorId, lat, lon } = JSON.parse(body);
+        const { filename, visitorId, lat, lon, timeSpentSeconds, maxScrollPercent } = JSON.parse(body || '{}');
         if (filename) {
           const gpsCoords = (lat && lon) ? { lat, lon } : null;
-          recordView(filename, req, visitorId, gpsCoords);
+          const engagement = (timeSpentSeconds || maxScrollPercent) ? { timeSpentSeconds, maxScrollPercent } : null;
+          recordView(filename, req, visitorId, gpsCoords, engagement);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -483,7 +514,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   }
 
   // ────────────────────────────────────────────────────────────────
-  // STATIC FILE SERVING & AUTOMATIC GPS TRACKING SCRIPT INJECTION
+  // STATIC FILE SERVING & ENGAGEMENT + GPS TRACKING SCRIPT INJECTION
   // ────────────────────────────────────────────────────────────────
   let filePath = null;
 
@@ -542,7 +573,7 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
         return;
       }
 
-      const gpsTrackingScript = `
+      const engagementTrackingScript = `
 <script>
 (function() {
   var fn = ${JSON.stringify(targetFilename)};
@@ -550,22 +581,64 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   var vid = localStorage.getItem(vKey) || ('v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6));
   localStorage.setItem(vKey, vid);
 
-  function sendTrack(lat, lon) {
+  var startTime = Date.now();
+  var totalActiveSeconds = 0;
+  var maxScroll = 0;
+  var isVisible = true;
+
+  function updateScroll() {
+    var h = document.documentElement, b = document.body;
+    var st = 'scrollTop' in h ? h.scrollTop : b.scrollTop;
+    var sh = 'scrollHeight' in h ? h.scrollHeight : b.scrollHeight;
+    var ch = h.clientHeight;
+    var percent = Math.round((st / Math.max(1, (sh - ch))) * 100);
+    if (percent > maxScroll) maxScroll = Math.min(100, Math.max(0, percent));
+  }
+
+  window.addEventListener('scroll', updateScroll, { passive: true });
+  updateScroll();
+
+  var timer = setInterval(function() {
+    if (isVisible) totalActiveSeconds += 3;
+    if (totalActiveSeconds % 12 === 0 || totalActiveSeconds === 3) {
+      sendHeartbeat();
+    }
+  }, 3000);
+
+  document.addEventListener('visibilitychange', function() {
+    isVisible = !document.hidden;
+    if (document.hidden) sendHeartbeat();
+  });
+
+  function sendHeartbeat(lat, lon) {
     try {
-      fetch('/api/track-proposal-view', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: fn, visitorId: vid, lat: lat || null, lon: lon || null })
-      }).catch(function(){});
+      var payload = JSON.stringify({
+        filename: fn,
+        visitorId: vid,
+        lat: lat || null,
+        lon: lon || null,
+        timeSpentSeconds: totalActiveSeconds,
+        maxScrollPercent: maxScroll
+      });
+
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/track-proposal-view', payload);
+      } else {
+        fetch('/api/track-proposal-view', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload
+        }).catch(function(){});
+      }
     } catch(e){}
   }
 
-  sendTrack(null, null);
+  sendHeartbeat(null, null);
 
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(function(pos) {
       if (pos && pos.coords) {
-        sendTrack(pos.coords.latitude, pos.coords.longitude);
+        sendHeartbeat(pos.coords.latitude, pos.coords.longitude);
       }
     }, function(){}, { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 });
   }
@@ -574,9 +647,9 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
 
       let finalHtml = htmlContent;
       if (finalHtml.includes('</body>')) {
-        finalHtml = finalHtml.replace('</body>', gpsTrackingScript + '</body>');
+        finalHtml = finalHtml.replace('</body>', engagementTrackingScript + '</body>');
       } else {
-        finalHtml += gpsTrackingScript;
+        finalHtml += engagementTrackingScript;
       }
 
       res.writeHead(200, { 
