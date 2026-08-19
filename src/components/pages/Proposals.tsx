@@ -34,17 +34,12 @@ export interface AnalyticsLog {
   os: string;
   visitorId: string;
   location?: LocationInfo;
-  timeSpentSeconds?: number;
-  maxScrollPercent?: number;
 }
 
 export interface ProposalAnalyticsData {
   totalViews: number;
   uniqueViews: number;
   duplicateViews: number;
-  avgTimeSpentSeconds?: number;
-  avgScrollPercent?: number;
-  highInterestCount?: number;
   deviceBreakdown: { Mobile: number; Desktop: number; Tablet: number };
   locationBreakdown?: Record<string, number>;
   logs: AnalyticsLog[];
@@ -118,14 +113,6 @@ function compressImageFile(file: File): Promise<string> {
   });
 }
 
-function formatDuration(sec?: number) {
-  if (!sec || sec <= 0) return "< 10s";
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  if (m === 0) return `${s}s`;
-  return `${m}m ${s}s`;
-}
-
 interface PendingProposal {
   htmlContent: string;
   filename: string;
@@ -196,196 +183,70 @@ export default function Proposals() {
     loadCloudProposals();
   }, []);
 
-  // Auto-sync HTML file contents from IndexedDB to Firebase Firestore & Node Server
-  useEffect(() => {
-    async function autoSyncProposalsToCloud() {
-      if (proposals.length === 0) return;
-      for (const item of proposals) {
-        try {
-          const htmlContent = await getFileFromIndexedDB(item.id);
-          if (htmlContent) {
-            const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-            // Backup HTML to Firebase Cloud Firestore
-            setDoc(doc(db, "proposal_html_files", safeDocId), {
-              filename: item.filename,
-              htmlContent,
-              updatedAt: new Date().toISOString()
-            }, { merge: true }).catch(() => {});
-
-            // Backup HTML to Node Server
-            fetch("/api/upload-proposal", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ filename: item.filename, htmlContent })
-            }).catch(() => {});
-          }
-        } catch (e) {}
-      }
-    }
-    autoSyncProposalsToCloud();
-  }, [proposals]);
-
-  const [analyticsScope, setAnalyticsScope] = useState<'current' | 'all'>('all');
-
-  // Fetch Analytics Data (Primary Node Server + Firestore Cloud Permanent Storage)
+  // Fetch Analytics Data (Primary Node Server + Firestore Cloud Sync)
   const openAnalyticsModal = async (item: ProposalItem) => {
     setAnalyticsItem(item);
     setIsLoadingAnalytics(true);
 
-    const combinedLogsMap = new Map<string, AnalyticsLog>();
+    let hasData = false;
 
+    // 1. Attempt fast fetch from Node Server API with 3.5s timeout
     try {
-      // 1. Attempt fetch from Node Server API
-      try {
-        const controller = new AbortController();
-        const tId = setTimeout(() => controller.abort(), 3500);
+      const controller = new AbortController();
+      const tId = setTimeout(() => controller.abort(), 3500);
 
-        const resp = await fetch(`/api/proposal-analytics?filename=${encodeURIComponent(item.filename)}`, {
-          signal: controller.signal
-        }).catch(() => null);
-        clearTimeout(tId);
+      const resp = await fetch(`/api/proposal-analytics?filename=${encodeURIComponent(item.filename)}`, {
+        signal: controller.signal
+      }).catch(() => null);
+      clearTimeout(tId);
 
-        if (resp && resp.ok) {
-          const serverData: ProposalAnalyticsData = await resp.json();
-          if (serverData && Array.isArray(serverData.logs)) {
-            serverData.logs.forEach(l => {
-              if (l && (l.id || l.timestamp)) {
-                combinedLogsMap.set(l.id || `${l.timestamp}_${l.ip}`, l);
-              }
-            });
-          }
-        }
-      } catch (err) {
-        console.warn("Node server API fetch notice:", err);
+      if (resp && resp.ok) {
+        const data = await resp.json();
+        setAnalyticsData(data);
+        hasData = true;
+
+        // Background non-blocking backup to Firestore Cloud
+        const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+        setDoc(doc(db, "proposal_analytics", safeDocId), data, { merge: true }).catch(() => {});
       }
+    } catch (err) {
+      console.warn("Node server API fetch notice:", err);
+    }
 
-      // 2. Fetch permanent cloud logs from Firebase Firestore SDK
+    // 2. Fallback to Firestore Cloud if server API didn't respond
+    if (!hasData) {
       try {
+        const safeDocId = item.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
         const snap = await Promise.race([
-          getDoc(doc(db, "proposal_analytics", "global_master_logs")),
+          getDoc(doc(db, "proposal_analytics", safeDocId)),
           new Promise<null>(res => setTimeout(() => res(null), 2500))
         ]);
-        if (snap && snap.exists() && snap.data()?.logs) {
-          const cloudLogs: AnalyticsLog[] = snap.data().logs;
-          cloudLogs.forEach(l => {
-            if (l && (l.id || l.timestamp)) {
-              const key = l.id || `${l.timestamp}_${l.ip}`;
-              if (!combinedLogsMap.has(key)) {
-                combinedLogsMap.set(key, l);
-              }
-            }
+
+        if (snap && snap.exists()) {
+          setAnalyticsData(snap.data() as ProposalAnalyticsData);
+        } else {
+          setAnalyticsData({
+            totalViews: 0,
+            uniqueViews: 0,
+            duplicateViews: 0,
+            deviceBreakdown: { Mobile: 0, Desktop: 0, Tablet: 0 },
+            locationBreakdown: {},
+            logs: []
           });
         }
       } catch (fsErr) {
-        console.warn("Firestore master logs notice:", fsErr);
-      }
-
-      // 3. Fetch direct from Firebase REST API for proposal_analytics_logs collection
-      try {
-        const restResp = await fetch("https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs?key=AIzaSyCVMh12zjoo0N49vi6JBSH9sPTulZLetI4").catch(() => null);
-        if (restResp && restResp.ok) {
-          const json = await restResp.json();
-          if (json && json.documents) {
-            json.documents.forEach((d: any) => {
-              const f = d.fields || {};
-              const itemLog: AnalyticsLog = {
-                id: f.id?.stringValue || d.name,
-                filename: f.filename?.stringValue || "",
-                timestamp: f.timestamp?.stringValue || new Date().toISOString(),
-                visitorId: f.visitorId?.stringValue || "",
-                ip: f.ip?.stringValue || "Client View",
-                userAgent: "",
-                device: f.device?.stringValue || "Desktop",
-                browser: f.browser?.stringValue || "Browser",
-                os: f.os?.stringValue || "Unknown",
-                timeSpentSeconds: parseInt(f.timeSpentSeconds?.integerValue || "0"),
-                maxScrollPercent: parseInt(f.maxScrollPercent?.integerValue || "0")
-              };
-              if (itemLog.filename) {
-                const key = itemLog.id || `${itemLog.timestamp}_${itemLog.ip}`;
-                if (!combinedLogsMap.has(key)) {
-                  combinedLogsMap.set(key, itemLog);
-                }
-              }
-            });
-          }
-        }
-      } catch (e) {}
-
-      const allMasterLogs = Array.from(combinedLogsMap.values()).sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
-
-      // Save back to Firestore global master logs for permanent cloud backup
-      if (allMasterLogs.length > 0) {
-        setDoc(doc(db, "proposal_analytics", "global_master_logs"), { logs: allMasterLogs.slice(0, 2000) }, { merge: true }).catch(() => {});
-      }
-
-      // Filter logs for target proposal
-      const cleanTarget = item.filename.toLowerCase().replace(/\.html?$/i, '').replace(/[^a-z0-9]/g, '');
-      const filteredLogs = cleanTarget 
-        ? allMasterLogs.filter(l => {
-            const lClean = (l.filename || '').toLowerCase().replace(/\.html?$/i, '').replace(/[^a-z0-9]/g, '');
-            return lClean === cleanTarget || (lClean.length >= 3 && cleanTarget.includes(lClean)) || (cleanTarget.length >= 3 && lClean.includes(cleanTarget));
-          })
-        : allMasterLogs;
-
-      const activeLogs = filteredLogs.length > 0 ? filteredLogs : allMasterLogs;
-
-      // Compute stats helper
-      const computeStats = (logsList: AnalyticsLog[]): ProposalAnalyticsData => {
-        const totalViews = logsList.length;
-        const uniqueVisitors = new Set(logsList.map(l => l.visitorId || l.ip));
-        const uniqueViews = uniqueVisitors.size;
-        const duplicateViews = Math.max(0, totalViews - uniqueViews);
-
-        const deviceBreakdown = { Mobile: 0, Desktop: 0, Tablet: 0 };
-        const locationBreakdown: Record<string, number> = {};
-        let totalDuration = 0;
-        let totalScroll = 0;
-        let highInterestCount = 0;
-
-        logsList.forEach(l => {
-          if (deviceBreakdown[l.device as 'Mobile'|'Desktop'|'Tablet'] !== undefined) {
-            deviceBreakdown[l.device as 'Mobile'|'Desktop'|'Tablet']++;
-          } else {
-            deviceBreakdown.Desktop++;
-          }
-
-          if (l.location) {
-            const areaStr = l.location.neighborhood 
-              ? `${l.location.neighborhood}, ${l.location.city}` 
-              : `${l.location.city || 'Mumbai'}, ${l.location.country || 'India'}`;
-            locationBreakdown[areaStr] = (locationBreakdown[areaStr] || 0) + 1;
-          }
-
-          const dur = l.timeSpentSeconds || 0;
-          const scr = l.maxScrollPercent || 0;
-          totalDuration += dur;
-          totalScroll += scr;
-          if (dur >= 120 || scr >= 75) highInterestCount++;
+        setAnalyticsData({
+          totalViews: 0,
+          uniqueViews: 0,
+          duplicateViews: 0,
+          deviceBreakdown: { Mobile: 0, Desktop: 0, Tablet: 0 },
+          locationBreakdown: {},
+          logs: []
         });
-
-        return {
-          totalViews,
-          uniqueViews,
-          duplicateViews,
-          avgTimeSpentSeconds: totalViews > 0 ? Math.round(totalDuration / totalViews) : 0,
-          avgScrollPercent: totalViews > 0 ? Math.round(totalScroll / totalViews) : 0,
-          highInterestCount,
-          deviceBreakdown,
-          locationBreakdown,
-          logs: logsList
-        };
-      };
-
-      setAnalyticsData(computeStats(activeLogs));
-    } catch (outerErr) {
-      console.error("Analytics fetch error:", outerErr);
-    } finally {
-      setIsLoadingAnalytics(false);
+      }
     }
+
+    setIsLoadingAnalytics(false);
   };
 
   // Export Analytics logs to CSV / Excel
@@ -395,7 +256,7 @@ export default function Proposals() {
       return;
     }
 
-    const headers = ["Timestamp", "Filename", "IP Address", "Device", "Browser", "OS", "Time Spent", "Scroll Depth %", "Neighborhood", "City", "Country"];
+    const headers = ["Timestamp", "Filename", "IP Address", "Device", "Browser", "OS", "Neighborhood", "City", "Country"];
     const rows = analyticsData.logs.map(log => [
       `"${new Date(log.timestamp).toLocaleString()}"`,
       `"${log.filename}"`,
@@ -403,8 +264,6 @@ export default function Proposals() {
       `"${log.device}"`,
       `"${log.browser}"`,
       `"${log.os}"`,
-      `"${formatDuration(log.timeSpentSeconds)}"`,
-      `"${log.maxScrollPercent || 0}%"`,
       `"${log.location?.neighborhood || ""}"`,
       `"${log.location?.city || "Mumbai"}"`,
       `"${log.location?.country || "India"}"`
@@ -540,18 +399,6 @@ export default function Proposals() {
           body: JSON.stringify({ filename: pending.filename, htmlContent: pending.htmlContent })
         });
       } catch {}
-
-      // Backup full HTML Content to Firebase Cloud Firestore for permanent zero-404 persistence
-      try {
-        const safeDocId = pending.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-        await setDoc(doc(db, "proposal_html_files", safeDocId), {
-          filename: pending.filename,
-          htmlContent: pending.htmlContent,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      } catch (fsErr) {
-        console.warn("Firestore HTML backup notice:", fsErr);
-      }
 
       const updatedProposal: ProposalItem = {
         id: propId,
@@ -947,46 +794,30 @@ export default function Proposals() {
               </div>
             ) : analyticsData ? (
               <div className="space-y-6 overflow-y-auto pr-1">
-                {/* 5 Metric Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
-                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
-                      <Eye size={12} className="text-blue-400" /> Total Opens
+                {/* 3 Metric Cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400 uppercase tracking-wider mb-1">
+                      <Eye size={14} className="text-blue-400" /> Total Opens
                     </div>
-                    <div className="text-xl md:text-2xl font-bold text-white">{analyticsData.totalViews}</div>
+                    <div className="text-2xl md:text-3xl font-bold text-white">{analyticsData.totalViews}</div>
                     <span className="text-[10px] text-gray-500">All page views</span>
                   </div>
 
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
-                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
-                      <Users size={12} className="text-emerald-400" /> Unique Readers
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400 uppercase tracking-wider mb-1">
+                      <Users size={14} className="text-emerald-400" /> Unique Readers
                     </div>
-                    <div className="text-xl md:text-2xl font-bold text-emerald-400">{analyticsData.uniqueViews}</div>
+                    <div className="text-2xl md:text-3xl font-bold text-emerald-400">{analyticsData.uniqueViews}</div>
                     <span className="text-[10px] text-gray-500">Distinct devices/IPs</span>
                   </div>
 
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
-                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
-                      <Repeat size={12} className="text-amber-400" /> Re-Reads
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+                    <div className="flex items-center justify-center gap-1 text-xs text-gray-400 uppercase tracking-wider mb-1">
+                      <Repeat size={14} className="text-amber-400" /> Duplicate Opens
                     </div>
-                    <div className="text-xl md:text-2xl font-bold text-amber-400">{analyticsData.duplicateViews}</div>
-                    <span className="text-[10px] text-gray-500">Repeat opens</span>
-                  </div>
-
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
-                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
-                      <Clock size={12} className="text-purple-400" /> Avg Read Time
-                    </div>
-                    <div className="text-xl md:text-2xl font-bold text-purple-300">{formatDuration(analyticsData.avgTimeSpentSeconds)}</div>
-                    <span className="text-[10px] text-gray-500">Active reading time</span>
-                  </div>
-
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center col-span-2 md:col-span-1">
-                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-400 uppercase tracking-wider mb-1">
-                      <FileText size={12} className="text-rose-400" /> Scroll Depth
-                    </div>
-                    <div className="text-xl md:text-2xl font-bold text-rose-300">{analyticsData.avgScrollPercent || 0}%</div>
-                    <span className="text-[10px] text-gray-500">Content completed</span>
+                    <div className="text-2xl md:text-3xl font-bold text-amber-400">{analyticsData.duplicateViews}</div>
+                    <span className="text-[10px] text-gray-500">Re-reads by audience</span>
                   </div>
                 </div>
 
@@ -1057,23 +888,9 @@ export default function Proposals() {
                               <div className="text-[11px] text-gray-300 font-mono">
                                 {new Date(log.timestamp).toLocaleString()}
                               </div>
-                              <div className="flex items-center justify-end gap-1.5 pt-0.5 flex-wrap">
-                                {log.timeSpentSeconds && log.timeSpentSeconds > 0 ? (
-                                  <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/30">
-                                    ⏱️ {formatDuration(log.timeSpentSeconds)}
-                                  </span>
-                                ) : null}
-                                {log.maxScrollPercent && log.maxScrollPercent > 0 ? (
-                                  <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30">
-                                    📜 {log.maxScrollPercent}% Read
-                                  </span>
-                                ) : null}
-                                {(log.timeSpentSeconds && log.timeSpentSeconds >= 120) || (log.maxScrollPercent && log.maxScrollPercent >= 75) ? (
-                                  <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold">
-                                    🔥 High Interest
-                                  </span>
-                                ) : null}
-                              </div>
+                              <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                Real Open
+                              </span>
                             </div>
                           </div>
                         ))}

@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "start": "node server.js",
-    "build": "vite build",
+    "start": "node app.js",
+    "build": "vite build && cp app.js ../../../ && cp -a dist/. ../../../ || true",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "preview": "vite preview",

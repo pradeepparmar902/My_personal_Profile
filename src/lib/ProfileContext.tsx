@@ -73,44 +73,13 @@ interface ProfileContextType {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-export const FALLBACK_PROFILE: Profile = {
-  name: "Pradeep Parmar",
-  title: "Master Practitioner & Professional Trainer",
-  tagline: "Learn. Lead. Succeed.",
-  heroDescription: "Over the last decade, I have guided thousands of professionals, corporate leaders, and students to unlock their ultimate mental potential, master advanced technical tools, and live with conscious purpose.",
-  bio: "👋 Hello! I'm Pradeep Parmar, a passionate trainer dedicated to helping people learn, grow, and succeed. Over the years, I've conducted multiple workshops on Excel, Power BI, SQL, Python, Success Training, Belief System, and NLP. I hold an MBA, an ITI background, certifications in Digital Marketing and Data Science, and bring with me 25+ years of corporate experience.",
-  email: "pradeepparmar902@yahoo.com",
-  phone: "+91 98199 84437",
-  location: "Gujarat, India",
-  avatarUrl: "./logo-white.png",
-  linkedin: "https://www.linkedin.com/in/pradeep-parmar-1b57a24",
-  youtube: "https://www.youtube.com/@parmar_pradeep902",
-  instagram: "https://www.instagram.com/pradeepparmar902",
-  stats: [
-    { label: "Workshops Delivered", value: "250+" },
-    { label: "Learners Trained", value: "15,000+" },
-    { label: "Corporate Experience", value: "25+ Yrs" },
-    { label: "Community Trust", value: "Active" }
-  ],
-  badge: "NLP Practitioner & Corporate Leader",
-  aboutSubtitle: "NLP Master & Advisor",
-  aboutAvatarUrl: "./logo-white.png",
-  highlights: [
-    { title: "Subconscious Blueprint", description: "Custom NLP maps to swap limiting core beliefs." },
-    { title: "Enterprise Analytics", description: "Corporate audits in Advanced Excel & Power BI." },
-    { title: "Longevity Strategy", description: "Perfect mind-body equilibrium habits." },
-    { title: "Relentless Coaching", description: "Actionable and bulletproof accountability logs." }
-  ],
-  skillCategoryOrder: ["technical", "mindset", "leadership", "corporate"]
-};
-
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<Profile>(() => {
+  const [profile, setProfile] = useState<Profile | null>(() => {
     try {
       const cached = localStorage.getItem("cached_profile");
-      return cached ? JSON.parse(cached) : FALLBACK_PROFILE;
+      return cached ? JSON.parse(cached) : null;
     } catch {
-      return FALLBACK_PROFILE;
+      return null;
     }
   });
   const [projects, setProjects] = useState<Project[]>([]);
@@ -320,7 +289,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       refreshData();
     });
     return () => unsubscribe();
-  }, []);
+  }, [isAdmin]);
 
   const updateProfile = async (profileData: Profile) => {
     try {

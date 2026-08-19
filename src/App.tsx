@@ -19,8 +19,6 @@ import { lazy, Suspense } from "react";
 
 const Background3D = lazy(() => import("./components/three/Background3D"));
 
-import ErrorBoundary from "./components/ErrorBoundary";
-
 function MainAppContent() {
   const isDeepLinked = (() => {
     const params = new URLSearchParams(window.location.search);
@@ -125,11 +123,9 @@ function MainAppContent() {
     <div className="relative min-h-screen text-white overflow-x-clip font-sans selection:bg-[#d4af37] selection:text-black">
       {/* 3D Canvas Layer (Deferred for Performance, disabled entirely on deep links to prevent WebGL lockups) */}
       {!isDeepLinked && (
-        <ErrorBoundary fallback={null} name="Background3D">
-          <Suspense fallback={null}>
-            <Background3D />
-          </Suspense>
-        </ErrorBoundary>
+        <Suspense fallback={null}>
+          <Background3D />
+        </Suspense>
       )}
 
       {/* Navigation Headers */}
@@ -145,9 +141,7 @@ function MainAppContent() {
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
           >
-            <ErrorBoundary name={currentTab}>
-              {renderPage()}
-            </ErrorBoundary>
+            {renderPage()}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -160,10 +154,8 @@ function MainAppContent() {
 
 export default function App() {
   return (
-    <ErrorBoundary name="RootApp">
-      <ProfileProvider>
-        <MainAppContent />
-      </ProfileProvider>
-    </ErrorBoundary>
+    <ProfileProvider>
+      <MainAppContent />
+    </ProfileProvider>
   );
 }
