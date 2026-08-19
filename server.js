@@ -778,10 +778,22 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   const extname = String(path.extname(filePath)).toLowerCase();
   const contentType = MIME_TYPES[extname] || 'application/octet-stream';
 
-  res.writeHead(200, { 
+  const isHtml = extname === '.html' || extname === '.htm';
+  const isHashedAsset = urlPath.startsWith('/assets/');
+
+  const headers = {
     'Content-Type': contentType,
-    'Cache-Control': 'public, max-age=86400'
-  });
+    'Cache-Control': isHtml 
+      ? 'no-cache, no-store, must-revalidate, max-age=0' 
+      : (isHashedAsset ? 'public, max-age=31536000, immutable' : 'public, max-age=86400')
+  };
+
+  if (isHtml) {
+    headers['Pragma'] = 'no-cache';
+    headers['Expires'] = '0';
+  }
+
+  res.writeHead(200, headers);
   fs.createReadStream(filePath).pipe(res);
 });
 
