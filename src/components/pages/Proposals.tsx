@@ -233,126 +233,159 @@ export default function Proposals() {
     setAnalyticsItem(item);
     setIsLoadingAnalytics(true);
 
-    let serverData: ProposalAnalyticsData | null = null;
-    let cloudMasterLogs: AnalyticsLog[] = [];
+    const combinedLogsMap = new Map<string, AnalyticsLog>();
 
-    // 1. Attempt fetch from Node Server API
     try {
-      const controller = new AbortController();
-      const tId = setTimeout(() => controller.abort(), 3500);
+      // 1. Attempt fetch from Node Server API
+      try {
+        const controller = new AbortController();
+        const tId = setTimeout(() => controller.abort(), 3500);
 
-      const resp = await fetch(`/api/proposal-analytics?filename=${encodeURIComponent(item.filename)}`, {
-        signal: controller.signal
-      }).catch(() => null);
-      clearTimeout(tId);
+        const resp = await fetch(`/api/proposal-analytics?filename=${encodeURIComponent(item.filename)}`, {
+          signal: controller.signal
+        }).catch(() => null);
+        clearTimeout(tId);
 
-      if (resp && resp.ok) {
-        serverData = await resp.json();
+        if (resp && resp.ok) {
+          const serverData: ProposalAnalyticsData = await resp.json();
+          if (serverData && Array.isArray(serverData.logs)) {
+            serverData.logs.forEach(l => {
+              if (l && (l.id || l.timestamp)) {
+                combinedLogsMap.set(l.id || `${l.timestamp}_${l.ip}`, l);
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Node server API fetch notice:", err);
       }
-    } catch (err) {
-      console.warn("Node server API fetch notice:", err);
-    }
 
-    // 2. Fetch permanent cloud logs from Firebase Firestore
-    try {
-      const snap = await Promise.race([
-        getDoc(doc(db, "proposal_analytics", "global_master_logs")),
-        new Promise<null>(res => setTimeout(() => res(null), 2500))
-      ]);
-      if (snap && snap.exists() && snap.data()?.logs) {
-        cloudMasterLogs = snap.data().logs;
-      }
-    } catch (fsErr) {
-      console.warn("Firestore master logs notice:", fsErr);
-    }
-
-    // 3. Fetch direct from Firebase REST API for proposal_analytics_logs collection
-    try {
-      const restResp = await fetch("https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs?key=AIzaSyCVMh12zjoo0N49vi6JBSH9sPTulZLetI4").catch(() => null);
-      if (restResp && restResp.ok) {
-        const json = await restResp.json();
-        if (json && json.documents) {
-          json.documents.forEach((d: any) => {
-            const f = d.fields || {};
-            const itemLog: AnalyticsLog = {
-              id: f.id?.stringValue || d.name,
-              filename: f.filename?.stringValue || "",
-              timestamp: f.timestamp?.stringValue || new Date().toISOString(),
-              visitorId: f.visitorId?.stringValue || "",
-              ip: f.ip?.stringValue || "Client View",
-              userAgent: "",
-              device: f.device?.stringValue || "Desktop",
-              browser: f.browser?.stringValue || "Browser",
-              os: f.os?.stringValue || "Unknown",
-              timeSpentSeconds: parseInt(f.timeSpentSeconds?.integerValue || "0"),
-              maxScrollPercent: parseInt(f.maxScrollPercent?.integerValue || "0")
-            };
-            if (itemLog.filename) {
-              combinedLogsMap.set(itemLog.id, itemLog);
+      // 2. Fetch permanent cloud logs from Firebase Firestore SDK
+      try {
+        const snap = await Promise.race([
+          getDoc(doc(db, "proposal_analytics", "global_master_logs")),
+          new Promise<null>(res => setTimeout(() => res(null), 2500))
+        ]);
+        if (snap && snap.exists() && snap.data()?.logs) {
+          const cloudLogs: AnalyticsLog[] = snap.data().logs;
+          cloudLogs.forEach(l => {
+            if (l && (l.id || l.timestamp)) {
+              const key = l.id || `${l.timestamp}_${l.ip}`;
+              if (!combinedLogsMap.has(key)) {
+                combinedLogsMap.set(key, l);
+              }
             }
           });
         }
+      } catch (fsErr) {
+        console.warn("Firestore master logs notice:", fsErr);
       }
-    } catch (e) {}
 
-    const masterLogs = Array.from(combinedLogsMap.values()).sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-
-    // Save back to Firestore global master logs for permanent cloud backup
-    if (masterLogs.length > 0) {
-      setDoc(doc(db, "proposal_analytics", "global_master_logs"), { logs: masterLogs.slice(0, 2000) }, { merge: true }).catch(() => {});
-    }
-
-    // Compute stats helper
-    const computeStats = (logsList: AnalyticsLog[]): ProposalAnalyticsData => {
-      const totalViews = logsList.length;
-      const uniqueVisitors = new Set(logsList.map(l => l.visitorId || l.ip));
-      const uniqueViews = uniqueVisitors.size;
-      const duplicateViews = Math.max(0, totalViews - uniqueViews);
-
-      const deviceBreakdown = { Mobile: 0, Desktop: 0, Tablet: 0 };
-      const locationBreakdown: Record<string, number> = {};
-      let totalDuration = 0;
-      let totalScroll = 0;
-      let highInterestCount = 0;
-
-      logsList.forEach(l => {
-        if (deviceBreakdown[l.device as 'Mobile'|'Desktop'|'Tablet'] !== undefined) {
-          deviceBreakdown[l.device as 'Mobile'|'Desktop'|'Tablet']++;
-        } else {
-          deviceBreakdown.Desktop++;
+      // 3. Fetch direct from Firebase REST API for proposal_analytics_logs collection
+      try {
+        const restResp = await fetch("https://firestore.googleapis.com/v1/projects/my-personal-profile-96791/databases/(default)/documents/proposal_analytics_logs?key=AIzaSyCVMh12zjoo0N49vi6JBSH9sPTulZLetI4").catch(() => null);
+        if (restResp && restResp.ok) {
+          const json = await restResp.json();
+          if (json && json.documents) {
+            json.documents.forEach((d: any) => {
+              const f = d.fields || {};
+              const itemLog: AnalyticsLog = {
+                id: f.id?.stringValue || d.name,
+                filename: f.filename?.stringValue || "",
+                timestamp: f.timestamp?.stringValue || new Date().toISOString(),
+                visitorId: f.visitorId?.stringValue || "",
+                ip: f.ip?.stringValue || "Client View",
+                userAgent: "",
+                device: f.device?.stringValue || "Desktop",
+                browser: f.browser?.stringValue || "Browser",
+                os: f.os?.stringValue || "Unknown",
+                timeSpentSeconds: parseInt(f.timeSpentSeconds?.integerValue || "0"),
+                maxScrollPercent: parseInt(f.maxScrollPercent?.integerValue || "0")
+              };
+              if (itemLog.filename) {
+                const key = itemLog.id || `${itemLog.timestamp}_${itemLog.ip}`;
+                if (!combinedLogsMap.has(key)) {
+                  combinedLogsMap.set(key, itemLog);
+                }
+              }
+            });
+          }
         }
+      } catch (e) {}
 
-        if (l.location) {
-          const areaStr = l.location.neighborhood 
-            ? `${l.location.neighborhood}, ${l.location.city}` 
-            : `${l.location.city || 'Mumbai'}, ${l.location.country || 'India'}`;
-          locationBreakdown[areaStr] = (locationBreakdown[areaStr] || 0) + 1;
-        }
+      const allMasterLogs = Array.from(combinedLogsMap.values()).sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
 
-        const dur = l.timeSpentSeconds || 0;
-        const scr = l.maxScrollPercent || 0;
-        totalDuration += dur;
-        totalScroll += scr;
-        if (dur >= 120 || scr >= 75) highInterestCount++;
-      });
+      // Save back to Firestore global master logs for permanent cloud backup
+      if (allMasterLogs.length > 0) {
+        setDoc(doc(db, "proposal_analytics", "global_master_logs"), { logs: allMasterLogs.slice(0, 2000) }, { merge: true }).catch(() => {});
+      }
 
-      return {
-        totalViews,
-        uniqueViews,
-        duplicateViews,
-        avgTimeSpentSeconds: totalViews > 0 ? Math.round(totalDuration / totalViews) : 0,
-        avgScrollPercent: totalViews > 0 ? Math.round(totalScroll / totalViews) : 0,
-        highInterestCount,
-        deviceBreakdown,
-        locationBreakdown,
-        logs: logsList
+      // Filter logs for target proposal
+      const cleanTarget = item.filename.toLowerCase().replace(/\.html?$/i, '').replace(/[^a-z0-9]/g, '');
+      const filteredLogs = cleanTarget 
+        ? allMasterLogs.filter(l => {
+            const lClean = (l.filename || '').toLowerCase().replace(/\.html?$/i, '').replace(/[^a-z0-9]/g, '');
+            return lClean === cleanTarget || (lClean.length >= 3 && cleanTarget.includes(lClean)) || (cleanTarget.length >= 3 && lClean.includes(cleanTarget));
+          })
+        : allMasterLogs;
+
+      const activeLogs = filteredLogs.length > 0 ? filteredLogs : allMasterLogs;
+
+      // Compute stats helper
+      const computeStats = (logsList: AnalyticsLog[]): ProposalAnalyticsData => {
+        const totalViews = logsList.length;
+        const uniqueVisitors = new Set(logsList.map(l => l.visitorId || l.ip));
+        const uniqueViews = uniqueVisitors.size;
+        const duplicateViews = Math.max(0, totalViews - uniqueViews);
+
+        const deviceBreakdown = { Mobile: 0, Desktop: 0, Tablet: 0 };
+        const locationBreakdown: Record<string, number> = {};
+        let totalDuration = 0;
+        let totalScroll = 0;
+        let highInterestCount = 0;
+
+        logsList.forEach(l => {
+          if (deviceBreakdown[l.device as 'Mobile'|'Desktop'|'Tablet'] !== undefined) {
+            deviceBreakdown[l.device as 'Mobile'|'Desktop'|'Tablet']++;
+          } else {
+            deviceBreakdown.Desktop++;
+          }
+
+          if (l.location) {
+            const areaStr = l.location.neighborhood 
+              ? `${l.location.neighborhood}, ${l.location.city}` 
+              : `${l.location.city || 'Mumbai'}, ${l.location.country || 'India'}`;
+            locationBreakdown[areaStr] = (locationBreakdown[areaStr] || 0) + 1;
+          }
+
+          const dur = l.timeSpentSeconds || 0;
+          const scr = l.maxScrollPercent || 0;
+          totalDuration += dur;
+          totalScroll += scr;
+          if (dur >= 120 || scr >= 75) highInterestCount++;
+        });
+
+        return {
+          totalViews,
+          uniqueViews,
+          duplicateViews,
+          avgTimeSpentSeconds: totalViews > 0 ? Math.round(totalDuration / totalViews) : 0,
+          avgScrollPercent: totalViews > 0 ? Math.round(totalScroll / totalViews) : 0,
+          highInterestCount,
+          deviceBreakdown,
+          locationBreakdown,
+          logs: logsList
+        };
       };
-    };
 
-    setAnalyticsData(computeStats(masterLogs));
-    setIsLoadingAnalytics(false);
+      setAnalyticsData(computeStats(activeLogs));
+    } catch (outerErr) {
+      console.error("Analytics fetch error:", outerErr);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
   };
 
   // Export Analytics logs to CSV / Excel
