@@ -757,6 +757,27 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
     return;
   }
 
+  if (!filePath && urlPath.startsWith('/assets/')) {
+    // If an older cached index.html asks for an older hashed chunk, fallback to the current matching asset!
+    const assetBaseName = path.basename(urlPath);
+    for (const dp of possibleDistPaths) {
+      const distAssetsDir = path.join(dp, 'assets');
+      if (fs.existsSync(distAssetsDir) && fs.statSync(distAssetsDir).isDirectory()) {
+        const files = fs.readdirSync(distAssetsDir);
+        if (assetBaseName.startsWith('index-') && assetBaseName.endsWith('.js')) {
+          const match = files.find(f => f.startsWith('index-') && f.endsWith('.js'));
+          if (match) { filePath = path.join(distAssetsDir, match); break; }
+        } else if (assetBaseName.startsWith('Background3D-') && assetBaseName.endsWith('.js')) {
+          const match = files.find(f => f.startsWith('Background3D-') && f.endsWith('.js'));
+          if (match) { filePath = path.join(distAssetsDir, match); break; }
+        } else if (assetBaseName.startsWith('index-') && assetBaseName.endsWith('.css')) {
+          const match = files.find(f => f.startsWith('index-') && f.endsWith('.css'));
+          if (match) { filePath = path.join(distAssetsDir, match); break; }
+        }
+      }
+    }
+  }
+
   if (!filePath) {
     if (path.extname(urlPath).length > 0) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -784,13 +805,16 @@ ${coverUrl ? `<div><img src="${coverUrl}" style="max-width:340px;border-radius:1
   const headers = {
     'Content-Type': contentType,
     'Cache-Control': isHtml 
-      ? 'no-cache, no-store, must-revalidate, max-age=0' 
+      ? 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0' 
       : (isHashedAsset ? 'public, max-age=31536000, immutable' : 'public, max-age=86400')
   };
 
   if (isHtml) {
     headers['Pragma'] = 'no-cache';
     headers['Expires'] = '0';
+    headers['CDN-Cache-Control'] = 'no-store';
+    headers['Surrogate-Control'] = 'no-store';
+    headers['Cloudflare-CDN-Cache-Control'] = 'no-store';
   }
 
   res.writeHead(200, headers);
