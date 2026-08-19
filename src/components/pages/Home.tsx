@@ -93,13 +93,13 @@ interface HomeProps {
 export default function Home({ setCurrentTab }: HomeProps) {
   const { 
     profile, 
-    projects, 
-    testimonials, 
-    achievementCategories, 
-    achievements, 
-    positions, 
-    positionTypes,
-    skills
+    projects = [], 
+    testimonials = [], 
+    achievementCategories = [], 
+    achievements = [], 
+    positions = [], 
+    positionTypes = [],
+    skills = []
   } = useProfile();
 
   const handleScheduleConsultation = () => {
@@ -115,15 +115,15 @@ export default function Home({ setCurrentTab }: HomeProps) {
   };
 
   // Filter hidden entities for public view
-  const visibleProjects = projects.filter(p => !p.isHidden);
-  const visibleTestimonials = testimonials.filter(t => !t.isHidden);
-  const visibleAchievements = achievements.filter(a => !a.isHidden);
-  const visiblePositions = positions.filter(p => !p.isHidden);
-  const visibleCategories = achievementCategories.filter(c => !c.isHidden && visibleAchievements.some(a => a.categoryId === c.id));
-  const visibleSkills = (skills || []).filter(s => !s.isHidden);
+  const visibleProjects = (projects || []).filter(p => !p?.isHidden);
+  const visibleTestimonials = (testimonials || []).filter(t => !t?.isHidden);
+  const visibleAchievements = (achievements || []).filter(a => !a?.isHidden);
+  const visiblePositions = (positions || []).filter(p => !p?.isHidden);
+  const visibleCategories = (achievementCategories || []).filter(c => !c?.isHidden && visibleAchievements.some(a => a?.categoryId === c?.id));
+  const visibleSkills = (skills || []).filter(s => !s?.isHidden);
 
   // Sort skill categories based on profile?.skillCategoryOrder
-  const rawSkillCats = Array.from(new Set(visibleSkills.map(s => s.category || "Technical")));
+  const rawSkillCats = Array.from(new Set(visibleSkills.map(s => s?.category || "Technical")));
   const sortedSkillCats = [...rawSkillCats].sort((a, b) => {
     if (!profile?.skillCategoryOrder) return 0;
     const idxA = profile.skillCategoryOrder.indexOf(a);
